@@ -1,0 +1,269 @@
+/*
+  Localizable.strings
+  AudioPlayer
+
+  Created by Ashim S on 2025/09/21.
+  Spanish (es) localization for AudioPlayer
+*/
+
+// MARK: - App Navigation
+"tab.library" = "Biblioteca";
+"tab.playlist" = "Lista de Reproducción";
+"tab.player" = "Reproductor";
+"tab.settings" = "Configuración";
+
+// MARK: - Navigation Accessibility
+"tab.library.label" = "Pestaña de biblioteca";
+"tab.library.hint" = "Navegar por tu biblioteca de audio";
+"tab.playlist.label" = "Pestaña de lista de reproducción";
+"tab.playlist.hint" = "Crear y gestionar listas de reproducción";
+"tab.player.label" = "Pestaña del reproductor";
+"tab.player.hint" = "Controles del reproductor de audio";
+"tab.settings.label" = "Pestaña de configuración";
+"tab.settings.hint" = "Configuración y preferencias de la aplicación";
+
+// MARK: - Library View
+"library.title" = "Biblioteca de Audio";
+"library.search.placeholder" = "Buscar en biblioteca";
+"library.import.button" = "Importar Archivos";
+"library.empty.title" = "No hay Archivos de Audio";
+"library.empty.message" = "Importa archivos de audio para comenzar";
+"library.unknown.title" = "Título Desconocido";
+"library.unknown.artist" = "Artista Desconocido";
+"library.unknown.album" = "Álbum Desconocido";
+
+// MARK: - Audio Player
+"player.play" = "Reproducir";
+"player.pause" = "Pausar";
+"player.skip.forward" = "Saltar Adelante";
+"player.skip.backward" = "Saltar Atrás";
+"player.speed.control" = "Velocidad de Reproducción";
+"player.progress" = "Progreso de Reproducción";
+"player.volume" = "Volumen";
+"player.no.track" = "Ninguna pista cargada";
+
+// MARK: - Sleep Timer
+"sleep.timer.title" = "Temporizador de Sueño";
+"sleep.timer.off" = "Desactivado";
+"sleep.timer.minutes" = "%d minutos";
+"sleep.timer.hour" = "1 hora";
+"sleep.timer.custom" = "Personalizado";
+"sleep.timer.cancel" = "Cancelar Temporizador";
+"sleep.timer.set" = "Establecer Temporizador";
+
+// MARK: - Settings
+"settings.title" = "Configuración";
+"settings.accessibility" = "Accesibilidad";
+"settings.accessibility.label" = "Configuración de accesibilidad";
+"settings.accessibility.hint" = "Configurar funciones de accesibilidad";
+"settings.language" = "Idioma";
+"settings.language.label" = "Idioma de la aplicación";
+"settings.language.hint" = "Toca dos veces para cambiar el idioma de la aplicación";
+"settings.supported.formats" = "Formatos Compatibles";
+"settings.supported.formats.list" = "MP3 • M4A • M4B • AAC • WAV • FLAC • AIFF • CAF";
+"settings.import.description" = "Importa archivos de audio individuales o carpetas completas que contengan música. Los archivos duplicados y formatos no compatibles serán filtrados automáticamente.";
+"settings.version" = "Versión";
+"settings.build" = "Compilación";
+
+// MARK: - Language Selection
+"language.currently.set" = "Actualmente configurado en %@";
+
+// MARK: - Accessibility Settings
+"accessibility.title" = "Accesibilidad";
+"accessibility.voiceover" = "VoiceOver";
+"accessibility.voice.control" = "Control por Voz";
+"accessibility.dynamic.type" = "Tipo Dinámico";
+"accessibility.reduce.motion" = "Reducir Movimiento";
+"accessibility.high.contrast" = "Alto Contraste";
+"accessibility.button.shapes" = "Formas de Botones";
+"accessibility.test.suite" = "Suite de Pruebas de Accesibilidad";
+"accessibility.validation" = "Validación de Accesibilidad";
+
+// MARK: - VoiceOver Accessibility Labels
+"accessibility.play.button" = "Reproducir";
+"accessibility.pause.button" = "Pausar";
+"accessibility.skip.forward.button" = "Saltar adelante 15 segundos";
+"accessibility.skip.backward.button" = "Saltar atrás 15 segundos";
+"accessibility.progress.slider" = "Progreso de reproducción";
+"accessibility.speed.button" = "Velocidad de reproducción";
+"accessibility.volume.slider" = "Volumen";
+"accessibility.library.search" = "Buscar en biblioteca";
+"accessibility.import.button" = "Importar Archivos";
+"accessibility.sleep.timer.button" = "Temporizador de Sueño";
+
+// MARK: - VoiceOver Accessibility Hints
+"accessibility.play.hint" = "Toca dos veces para reproducir audio";
+"accessibility.pause.hint" = "Toca dos veces para pausar audio";
+"accessibility.skip.forward.hint" = "Toca dos veces para saltar adelante 15 segundos";
+"accessibility.skip.backward.hint" = "Toca dos veces para saltar atrás 15 segundos";
+"accessibility.progress.hint" = "Desliza hacia arriba o abajo para ajustar la posición de reproducción";
+"accessibility.speed.hint" = "Toca dos veces para cambiar la velocidad de reproducción";
+"accessibility.volume.hint" = "Desliza hacia arriba o abajo para ajustar el volumen";
+"accessibility.library.search.hint" = "Ingresa texto para buscar tus archivos de audio";
+"accessibility.import.hint" = "Toca dos veces para importar archivos de audio desde tu dispositivo";
+"accessibility.sleep.timer.hint" = "Toca dos veces para establecer el temporizador de sueño";
+
+// MARK: - VoiceOver Accessibility Values
+"accessibility.progress.value" = "%@ de %@";
+"accessibility.speed.value" = "%.1fx velocidad";
+"accessibility.volume.value" = "%d%% volumen";
+"accessibility.timer.value" = "%@ restante";
+
+// MARK: - Voice Control Commands
+"voice.command.play" = "Reproducir audio";
+"voice.command.pause" = "Pausar audio";
+"voice.command.skip.forward" = "Saltar adelante";
+"voice.command.skip.backward" = "Saltar atrás";
+"voice.command.next.track" = "Siguiente pista";
+"voice.command.previous.track" = "Pista anterior";
+"voice.command.normal.speed" = "Velocidad normal";
+"voice.command.slow.down" = "Más lento";
+"voice.command.speed.up" = "Más rápido";
+"voice.command.show.library" = "Mostrar biblioteca";
+"voice.command.show.player" = "Mostrar reproductor";
+"voice.command.show.settings" = "Mostrar configuración";
+"voice.command.import.files" = "Importar archivos de audio";
+"voice.command.search.library" = "Buscar en biblioteca";
+"voice.command.set.sleep.timer" = "Establecer temporizador de sueño";
+"voice.command.cancel.sleep.timer" = "Cancelar temporizador de sueño";
+"voice.command.describe.track" = "Describir pista actual";
+"voice.command.announce.time" = "Anunciar tiempo de reproducción";
+"voice.command.list.commands" = "Listar comandos disponibles";
+
+// MARK: - VoiceOver Announcements
+"announcement.playing" = "Reproduciendo";
+"announcement.paused" = "Pausado";
+"announcement.no.track" = "No hay ninguna pista cargada actualmente";
+"announcement.track.info" = "Reproduciendo actualmente: %@ por %@. Duración: %@";
+"announcement.playback.status" = "%@. Posición actual: %@ de %@";
+"announcement.speed.changed" = "Velocidad de reproducción cambiada a %@";
+"announcement.skip.forward" = "Saltado adelante %d segundos";
+"announcement.skip.backward" = "Saltado atrás %d segundos";
+
+// MARK: - Sleep Timer Announcements
+"announcement.timer.set" = "Temporizador de sueño establecido para %@";
+"announcement.timer.cancelled" = "Temporizador de sueño cancelado";
+"announcement.timer.expired" = "Temporizador de sueño expirado, reproducción detenida";
+"announcement.timer.warning.5min" = "Temporizador de sueño: 5 minutos restantes";
+"announcement.timer.warning.1min" = "Temporizador de sueño: 1 minuto restante";
+"announcement.timer.remaining" = "%@ restante en el temporizador de sueño";
+
+// MARK: - Error Messages
+"error.file.not.found" = "Archivo de audio no encontrado";
+"error.unsupported.format" = "Formato de audio no compatible";
+"error.import.failed" = "Error al importar archivo de audio";
+"error.playback.failed" = "Error en la reproducción";
+"error.permission.denied" = "Permiso denegado";
+
+// MARK: - File Import
+"import.title" = "Importar Archivos de Audio";
+"import.selecting" = "Seleccionando archivos...";
+"import.processing" = "Procesando archivos...";
+"import.success" = "Se importaron exitosamente %d archivos";
+"import.partial.success" = "Se importaron %d de %d archivos";
+"import.failed" = "Error al importar archivos";
+
+// MARK: - Audio Formats
+"format.mp3" = "Audio MP3";
+"format.m4a" = "Audio AAC";
+"format.m4b" = "Audiolibro AAC";
+"format.wav" = "Audio WAV";
+"format.flac" = "Audio FLAC";
+"format.aiff" = "Audio AIFF";
+"format.caf" = "Formato de Audio Central";
+
+// MARK: - Time Formats
+"time.seconds.singular" = "1 segundo";
+"time.seconds.plural" = "%d segundos";
+"time.minute.singular" = "1 minuto";
+"time.minutes.plural" = "%d minutos";
+"time.hour.singular" = "1 hora";
+"time.hours.plural" = "%d horas";
+
+// MARK: - Accessibility Test Suite
+"test.suite.title" = "Pruebas de Accesibilidad";
+"test.suite.running" = "Ejecutando pruebas de accesibilidad...";
+"test.suite.voiceover.labels" = "Etiquetas de VoiceOver";
+"test.suite.touch.targets" = "Objetivos Táctiles";
+"test.suite.dynamic.type" = "Tipo Dinámico";
+"test.suite.color.contrast" = "Contraste de Color";
+"test.suite.motion.preferences" = "Preferencias de Movimiento";
+"test.suite.focus.management" = "Gestión de Enfoque";
+"test.suite.voice.control" = "Control por Voz";
+"test.suite.no.issues" = "No se encontraron problemas";
+"test.suite.critical.issues" = "%d Problemas Críticos";
+"test.suite.warnings" = "%d Advertencias";
+"test.suite.suggestions" = "%d Sugerencias";
+"test.suite.refresh" = "Actualizar";
+"test.suite.generate.report" = "Generar Informe";
+
+// MARK: - Accessibility Validation
+"validation.title" = "Validación de Accesibilidad";
+"validation.continuous" = "Validación Continua";
+"validation.issues.detected" = "Problemas de Accesibilidad Detectados";
+"validation.critical.alert.title" = "Problemas de Accesibilidad";
+"validation.critical.alert.message" = "%d problemas críticos de accesibilidad detectados. Consulta la consola para más detalles.";
+"validation.ok" = "OK";
+
+// MARK: - Dynamic Type Support
+"dynamic.type.extra.small" = "Extra Pequeño";
+"dynamic.type.small" = "Pequeño";
+"dynamic.type.medium" = "Mediano";
+"dynamic.type.large" = "Grande";
+"dynamic.type.extra.large" = "Extra Grande";
+"dynamic.type.accessibility.medium" = "Accesibilidad Mediano";
+"dynamic.type.accessibility.large" = "Accesibilidad Grande";
+"dynamic.type.accessibility.extra.large" = "Accesibilidad Extra Grande";
+
+// MARK: - Playlist Management
+"playlist.title" = "Listas de Reproducción";
+"playlist.create" = "Crear Lista de Reproducción";
+"playlist.new" = "Nueva Lista de Reproducción";
+"playlist.name" = "Nombre de la Lista";
+"playlist.add.files" = "Agregar Archivos";
+"playlist.empty" = "Sin listas de reproducción";
+"playlist.empty.message" = "Crea tu primera lista de reproducción";
+"playlist.delete" = "Eliminar Lista de Reproducción";
+"playlist.edit" = "Editar Lista de Reproducción";
+"playlist.rename" = "Renombrar Lista de Reproducción";
+
+// MARK: - Common Actions
+"action.cancel" = "Cancelar";
+"action.done" = "Listo";
+"action.ok" = "OK";
+"action.save" = "Guardar";
+"action.delete" = "Eliminar";
+"action.edit" = "Editar";
+"action.add" = "Agregar";
+"action.remove" = "Quitar";
+"action.close" = "Cerrar";
+"action.back" = "Atrás";
+"action.next" = "Siguiente";
+"action.previous" = "Anterior";
+"action.retry" = "Reintentar";
+
+// MARK: - Status Messages
+"status.loading" = "Cargando...";
+"status.processing" = "Procesando...";
+"status.saving" = "Guardando...";
+"status.complete" = "Completo";
+"status.failed" = "Falló";
+"status.ready" = "Listo";
+"status.connecting" = "Conectando...";
+"status.connected" = "Conectado";
+"status.disconnected" = "Desconectado";
+
+// MARK: - Recently Added
+"recently.added.title" = "Agregados Recientemente";
+"recently.added.empty" = "No hay archivos agregados recientemente";
+
+// MARK: - Albums View
+"albums.title" = "Álbumes";
+"albums.unknown" = "Álbum Desconocido";
+
+// MARK: - Artists View
+"artists.title" = "Artistas";
+"artists.unknown" = "Artista Desconocido";
+
+// MARK: - All Songs View
+"all.songs.title" = "Todas las Canciones";
