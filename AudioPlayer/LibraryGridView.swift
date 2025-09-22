@@ -52,20 +52,26 @@ struct LibraryGridView: View {
     
     private var gridColumns: [GridItem] {
         let spacing = AccessibleSpacing.standard(for: dynamicTypeSize)
-        let minWidth: CGFloat = {
-            switch dynamicTypeSize {
-            case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
-                return 200 // Large cards for accessibility
-            case .xLarge, .xxLarge, .xxxLarge:
-                return 160 // Medium-large cards
-            case .large:
-                return 140 // Standard large cards
-            default:
-                return 120 // Standard cards
-            }
-        }()
         
-        return [GridItem(.adaptive(minimum: minWidth, maximum: .infinity), spacing: spacing)]
+        // Two equal flexible columns for large card display
+        return [
+            GridItem(.flexible(), spacing: spacing),
+            GridItem(.flexible(), spacing: spacing)
+        ]
+    }
+    
+    // Consistent artwork size for all cards
+    private var artworkSize: CGFloat {
+        switch dynamicTypeSize {
+        case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
+            return 160 // Large artwork for accessibility
+        case .xLarge, .xxLarge, .xxxLarge:
+            return 140 // Medium-large artwork
+        case .large:
+            return 120 // Standard large artwork
+        default:
+            return 100 // Standard artwork
+        }
     }
     
     var body: some View {
@@ -137,26 +143,26 @@ struct LibraryGridView: View {
                                 ForEach(folders, id: \.self) { folder in
                                     FolderGridCard(
                                         folder: folder,
+                                        artworkSize: artworkSize,
                                         action: { handleFolderSelection(folder) },
                                         onDelete: { folder in
                                             folderNavigationManager.deleteFolder(folder, context: viewContext)
                                             refreshContent()
                                         }
                                     )
-                                    .fixedSize(horizontal: true, vertical: false)
                                 }
                                 
                                 // Then show audio files
                                 ForEach(audioFiles, id: \.self) { audioFile in
                                     AudioFileGridCard(
                                         audioFile: audioFile,
+                                        artworkSize: artworkSize,
                                         action: { handleAudioFileSelection(audioFile) },
                                         onDelete: deleteAudioFile,
                                         onMarkAsPlayed: markAsPlayed,
                                         onResetProgress: resetProgress,
                                         onShare: shareAudioFile
                                     )
-                                    .fixedSize(horizontal: true, vertical: false)
                                 }
                             }
                             .animation(.none, value: audioFiles.count) // Prevent layout animations on async content changes
@@ -467,198 +473,145 @@ struct AudioFileGridCard: View {
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.managedObjectContext) private var viewContext
     let audioFile: AudioFile
+    let artworkSize: CGFloat
     let action: () -> Void
     let onDelete: (AudioFile) -> Void
     let onMarkAsPlayed: (AudioFile) -> Void
     let onResetProgress: (AudioFile) -> Void
     let onShare: (AudioFile) -> Void
     
-    // Calculate responsive card width based on device and text size
-    private var cardWidth: CGFloat {
-        switch dynamicTypeSize {
-        case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
-            return 200
-        case .xLarge, .xxLarge, .xxxLarge:
-            return 160
-        case .large:
-            return 140
-        default:
-            return 120
-        }
-    }
-    
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                // Square thumbnail that touches top and side edges
-                GeometryReader { geometry in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(LinearGradient(
-                                colors: [
-                                    accessibilityManager.highContrastColor(base: .blue.opacity(0.3), highContrast: .gray.opacity(0.5)),
-                                    accessibilityManager.highContrastColor(base: .purple.opacity(0.3), highContrast: .gray.opacity(0.7))
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                        
-                        // Pre-allocated container to isolate AsyncImage layout effects
-                        ZStack {
-                            // Invisible frame holder to maintain consistent dimensions
-                            Rectangle()
-                                .fill(Color.clear)
-                                .frame(width: geometry.size.width, height: geometry.size.width)
-                            
-                            if let artworkURL = audioFile.artworkURL {
-                                AsyncImage(url: artworkURL) { phase in
-                                    Group {
-                                        switch phase {
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                        case .failure(_):
-                                            Image(systemName: "music.note")
-                                                .font(.largeTitle)
-                                                .foregroundColor(.white)
-                                        case .empty:
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                .scaleEffect(0.8)
-                                        @unknown default:
-                                            Image(systemName: "music.note")
-                                                .font(.largeTitle)
-                                                .foregroundColor(.white)
-                                        }
-                                    }
-                                    .frame(width: geometry.size.width, height: geometry.size.width)
-                                    .clipped()
-                                    .clipShape(
-                                        UnevenRoundedRectangle(
-                                            topLeadingRadius: 12,
-                                            bottomLeadingRadius: 0,
-                                            bottomTrailingRadius: 0,
-                                            topTrailingRadius: 12
-                                        )
-                                    )
-                                }
-                                // Prevent AsyncImage from affecting parent layout
-                                .clipped()
-                            } else {
-                                Image(systemName: "music.note")
-                                    .font(dynamicTypeSize.isLargeSize ? .title : .largeTitle)
-                                    .foregroundColor(.white)
-                                    .frame(width: geometry.size.width, height: geometry.size.width)
-                            }
-                        }
+            VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
+                // Large artwork container with consistent size
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(
+                            colors: [
+                                accessibilityManager.highContrastColor(base: .blue.opacity(0.2), highContrast: .gray.opacity(0.4)),
+                                accessibilityManager.highContrastColor(base: .purple.opacity(0.2), highContrast: .gray.opacity(0.6))
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: artworkSize, height: artworkSize)
                     
-                        // Play/Pause indicator for currently playing file
-                        if audioPlayerService.currentAudioFile == audioFile {
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(.black.opacity(0.7)))
-                                        .padding(.trailing, 8)
-                                        .padding(.top, 8)
-                                }
-                                Spacer()
+                    // Artwork content
+                    if let artworkURL = audioFile.artworkURL {
+                        AsyncImage(url: artworkURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: artworkSize, height: artworkSize)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                            case .failure(_):
+                                Image(systemName: "music.note")
+                                    .font(.system(size: artworkSize * 0.4))
+                                    .foregroundColor(.white)
+                                    .frame(width: artworkSize, height: artworkSize)
+                            case .empty:
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.2)
+                                    .frame(width: artworkSize, height: artworkSize)
+                            @unknown default:
+                                Image(systemName: "music.note")
+                                    .font(.system(size: artworkSize * 0.4))
+                                    .foregroundColor(.white)
+                                    .frame(width: artworkSize, height: artworkSize)
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.width)
                         }
-                        
-                        // Duration overlay in bottom right
-                        if audioFile.duration > 0 {
-                            VStack {
+                    } else {
+                        Image(systemName: "music.note")
+                            .font(.system(size: artworkSize * 0.4))
+                            .foregroundColor(.white)
+                            .frame(width: artworkSize, height: artworkSize)
+                    }
+                    
+                    // Play/Pause indicator overlay
+                    if audioPlayerService.currentAudioFile == audioFile {
+                        VStack {
+                            HStack {
                                 Spacer()
-                                HStack {
-                                    Spacer()
-                                    Text(TimeInterval(audioFile.duration).formattedDuration)
-                                        .font(.caption2)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(.black.opacity(0.7))
-                                        .clipShape(Capsule())
-                                        .padding(.trailing, 8)
-                                        .padding(.bottom, 8)
-                                }
+                                Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                                    .background(Circle().fill(.black.opacity(0.8)))
+                                    .padding(8)
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.width)
+                            Spacer()
                         }
+                        .frame(width: artworkSize, height: artworkSize)
+                    }
+                    
+                    // Duration overlay
+                    if audioFile.duration > 0 {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Text(TimeInterval(audioFile.duration).formattedDuration)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.black.opacity(0.8))
+                                    .clipShape(Capsule())
+                                    .padding(8)
+                            }
+                        }
+                        .frame(width: artworkSize, height: artworkSize)
                     }
                 }
-                .aspectRatio(1, contentMode: .fit)
                 
-                // Progress bar under thumbnail
+                // Progress bar directly under artwork
                 if audioFile.duration > 0 {
                     ZStack(alignment: .leading) {
                         Rectangle()
                             .fill(.secondary.opacity(0.3))
-                            .frame(height: 3)
+                            .frame(height: 4)
                         
-                        GeometryReader { geometry in
-                            Rectangle()
-                                .fill(.primary)
-                                .frame(width: geometry.size.width * progressPercentage, height: 3)
-                        }
-                        .frame(height: 3)
+                        Rectangle()
+                            .fill(.blue)
+                            .frame(width: artworkSize * progressPercentage, height: 4)
                     }
+                    .frame(width: artworkSize)
                     .clipShape(Capsule())
-                    .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
-                    .padding(.top, AccessibleSpacing.compact(for: dynamicTypeSize))
                 }
                 
-                // Text content area
-                VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
+                // Text content area with improved typography
+                VStack(alignment: .leading, spacing: 4) {
                     Text(audioFile.title ?? "Unknown Title")
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .truncationMode(.tail)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                         .visualAccessibility()
                     
-                    if let artist = audioFile.artist, !artist.isEmpty {
-                        Text(artist)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .truncationMode(.tail)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .visualAccessibility(foreground: .secondary)
-                    } else {
-                        Text("Unknown Artist")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .visualAccessibility(foreground: .secondary)
-                    }
+                    Text(audioFile.artist ?? "Unknown Artist")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .visualAccessibility(foreground: .secondary)
                 }
                 .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
-                .padding(.bottom, AccessibleSpacing.compact(for: dynamicTypeSize))
-                .padding(.top, audioFile.duration > 0 ? 0 : AccessibleSpacing.compact(for: dynamicTypeSize))
             }
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(Color(.systemGray6))
-                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             )
             .contentShape(Rectangle())
-            .layoutPriority(1) // High priority to maintain size
         }
         .buttonStyle(.plain)
         .contextMenu {

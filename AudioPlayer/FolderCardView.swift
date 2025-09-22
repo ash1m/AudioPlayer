@@ -12,81 +12,64 @@ struct FolderGridCard: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let folder: Folder
+    let artworkSize: CGFloat
     let action: () -> Void
     let onDelete: (Folder) -> Void
     
-    // Calculate responsive card width based on device and text size
-    private var cardWidth: CGFloat {
-        switch dynamicTypeSize {
-        case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
-            return 200
-        case .xLarge, .xxLarge, .xxxLarge:
-            return 160
-        case .large:
-            return 140
-        default:
-            return 120
-        }
-    }
-    
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                // Square folder icon area that touches top and side edges
-                GeometryReader { geometry in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(LinearGradient(
-                                colors: [
-                                    accessibilityManager.highContrastColor(base: .orange.opacity(0.3), highContrast: .gray.opacity(0.5)),
-                                    accessibilityManager.highContrastColor(base: .yellow.opacity(0.3), highContrast: .gray.opacity(0.7))
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                        
-                        // Folder icon with folder.fill symbol
-                        Image(systemName: "folder.fill")
-                            .font(dynamicTypeSize.isLargeSize ? .title : .largeTitle)
-                            .foregroundColor(.orange)
-                            .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                        
-                        // File count badge in top right
-                        if folder.fileCount > 0 {
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    Text("\(folder.fileCount)")
-                                        .font(.caption2)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.blue)
-                                        .clipShape(Capsule())
-                                        .padding(.trailing, 8)
-                                        .padding(.top, 8)
-                                }
+            VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
+                // Large folder icon container with consistent size
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(
+                            colors: [
+                                accessibilityManager.highContrastColor(base: .orange.opacity(0.2), highContrast: .gray.opacity(0.4)),
+                                accessibilityManager.highContrastColor(base: .yellow.opacity(0.2), highContrast: .gray.opacity(0.6))
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: artworkSize, height: artworkSize)
+                    
+                    // Large folder icon
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: artworkSize * 0.4))
+                        .foregroundColor(.orange)
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .frame(width: artworkSize, height: artworkSize)
+                    
+                    // File count badge in top right corner
+                    if folder.fileCount > 0 {
+                        VStack {
+                            HStack {
                                 Spacer()
+                                Text("\(folder.fileCount)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.blue)
+                                    .clipShape(Capsule())
+                                    .padding(8)
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.width)
+                            Spacer()
                         }
+                        .frame(width: artworkSize, height: artworkSize)
                     }
                 }
-                .aspectRatio(1, contentMode: .fit)
                 
-                // Text content area
-                VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
+                // Text content area with improved typography
+                VStack(alignment: .leading, spacing: 4) {
                     Text(folder.name)
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .truncationMode(.tail)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                         .visualAccessibility()
                     
                     Text("\(folder.fileCount) file\(folder.fileCount == 1 ? "" : "s")")
@@ -94,23 +77,19 @@ struct FolderGridCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                         .visualAccessibility(foreground: .secondary)
                 }
                 .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
-                .padding(.bottom, AccessibleSpacing.compact(for: dynamicTypeSize))
-                .padding(.top, AccessibleSpacing.compact(for: dynamicTypeSize))
             }
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(Color(.systemGray6))
-                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             )
             .contentShape(Rectangle())
-            .layoutPriority(1) // High priority to maintain size
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -285,10 +264,10 @@ struct FolderListCard: View {
     return VStack {
         FolderGridCard(
             folder: sampleFolder,
+            artworkSize: 120,
             action: {},
             onDelete: { _ in }
         )
-        .frame(width: 140, height: 180)
         
         FolderListCard(
             folder: sampleFolder,

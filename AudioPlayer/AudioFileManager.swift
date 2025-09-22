@@ -52,15 +52,55 @@ class AudioFileManager: ObservableObject {
     
     func importAudioFiles(urls: [URL], context: NSManagedObjectContext) async -> [ImportResult] {
         var results: [ImportResult] = []
+        var individualFiles: [URL] = []
         var folderStructure: [String: (folder: Folder, files: [URL])] = [:]
-        
-        // First, process all URLs and build folder structure
-        for url in urls {
-            await processURLForFolderStructure(url, folderStructure: &folderStructure, context: context)
-        }
         
         // Get existing file names for duplicate detection
         let existingFileNames = await getExistingFileNames(context: context)
+        
+        // First, categorize URLs into individual files vs folders
+        for url in urls {
+            let isAccessing = url.startAccessingSecurityScopedResource()
+            defer {
+                if isAccessing {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+                continue
+            }
+            
+            if isDirectory.boolValue {
+                // It's a folder - process with folder structure
+                await processDirectory(url, folderStructure: &folderStructure, context: context)
+            } else {
+                // It's an individual file - add to individual files list
+                if isAudioFile(url) {
+                    individualFiles.append(url)
+                }
+            }
+        }
+        
+        // Import individual files to root (no folder association)
+        for fileURL in individualFiles {
+            do {
+                // Validate file format first
+                try validateAudioFormat(url: fileURL)
+                
+                // Check for duplicates
+                try validateNoDuplicate(url: fileURL, existingNames: existingFileNames)
+                
+                // Import the file without folder association
+                try await importSingleAudioFile(url: fileURL, folder: nil, context: context)
+                results.append(ImportResult(url: fileURL, success: true))
+                
+            } catch {
+                let failureReason = (error as? ImportError)?.errorDescription ?? error.localizedDescription
+                results.append(ImportResult(url: fileURL, success: false, error: error, failureReason: failureReason))
+            }
+        }
         
         // Import files grouped by folder
         for (folderPath, folderData) in folderStructure {
@@ -101,34 +141,6 @@ class AudioFileManager: ObservableObject {
     }
     
     // MARK: - Folder Processing Methods
-    
-    private func processURLForFolderStructure(_ url: URL, folderStructure: inout [String: (folder: Folder, files: [URL])], context: NSManagedObjectContext) async {
-        let isAccessing = url.startAccessingSecurityScopedResource()
-        defer {
-            if isAccessing {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return
-        }
-        
-        if !isDirectory.boolValue {
-            // It's a single file - create a "root" folder for it
-            let rootFolder = await getOrCreateFolder(name: "Imported Files", path: "/", parentFolder: nil, context: context)
-            let rootPath = "/"
-            if folderStructure[rootPath] == nil {
-                folderStructure[rootPath] = (folder: rootFolder, files: [])
-            }
-            folderStructure[rootPath]?.files.append(url)
-            return
-        }
-        
-        // It's a directory - process recursively
-        await processDirectory(url, folderStructure: &folderStructure, context: context)
-    }
     
     private func processDirectory(_ url: URL, folderStructure: inout [String: (folder: Folder, files: [URL])], context: NSManagedObjectContext, parentFolder: Folder? = nil) async {
         do {
