@@ -24,8 +24,8 @@ struct FolderGridCard: View {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(LinearGradient(
                             colors: [
-                                accessibilityManager.highContrastColor(base: .orange.opacity(0.2), highContrast: .gray.opacity(0.4)),
-                                accessibilityManager.highContrastColor(base: .yellow.opacity(0.2), highContrast: .gray.opacity(0.6))
+                                accessibilityManager.highContrastColor(base: .orange.opacity(0.2), highContrast: .black.opacity(0.4)),
+                                accessibilityManager.highContrastColor(base: .yellow.opacity(0.2), highContrast: .black.opacity(0.6))
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -86,7 +86,7 @@ struct FolderGridCard: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.systemGray6))
+                    .fill(Color.black)
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             )
             .contentShape(Rectangle())
@@ -182,8 +182,8 @@ struct FolderListCard: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(LinearGradient(
                     colors: [
-                        accessibilityManager.highContrastColor(base: .orange.opacity(0.3), highContrast: .gray.opacity(0.5)),
-                        accessibilityManager.highContrastColor(base: .yellow.opacity(0.3), highContrast: .gray.opacity(0.7))
+                        accessibilityManager.highContrastColor(base: .orange.opacity(0.3), highContrast: .black.opacity(0.5)),
+                        accessibilityManager.highContrastColor(base: .yellow.opacity(0.3), highContrast: .black.opacity(0.7))
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -251,7 +251,7 @@ struct FolderListCard: View {
     
     private var backgroundView: some View {
         RoundedRectangle(cornerRadius: 12)
-            .fill(Color(.systemGray6))
+            .fill(Color.black)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }

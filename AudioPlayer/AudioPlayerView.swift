@@ -266,7 +266,7 @@ struct AudioPlayerView: View {
             .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
             .padding(.vertical, AccessibleSpacing.compact(for: dynamicTypeSize))
             .background(
-                Color.gray.opacity(accessibilityManager.isReduceTransparencyEnabled ? 0.3 : 0.2)
+                Color.black.opacity(accessibilityManager.isReduceTransparencyEnabled ? 0.3 : 0.2)
             )
             .cornerRadius(15)
         }
@@ -285,7 +285,7 @@ struct AudioPlayerView: View {
                 .padding(.horizontal, AccessibleSpacing.standard(for: dynamicTypeSize))
                 .padding(.vertical, AccessibleSpacing.compact(for: dynamicTypeSize))
                 .background(
-                    Color.gray.opacity(accessibilityManager.isReduceTransparencyEnabled ? 0.3 : 0.2)
+                    Color.black.opacity(accessibilityManager.isReduceTransparencyEnabled ? 0.3 : 0.2)
                 )
                 .cornerRadius(15)
         }

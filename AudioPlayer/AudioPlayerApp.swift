@@ -1,6 +1,6 @@
 //
-//  FireVoxApp.swift
-//  FireVox
+//  AudioPlayerApp.swift
+//  AudioPlayer
 //
 //  Created by Ashim S on 2025/09/15.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 
 @main
-struct FireVoxApp: App {
+struct AudioPlayerApp: App {
     let persistenceController = PersistenceController.shared
     @StateObject private var audioPlayerService = AudioPlayerService()
     @StateObject private var audioFileManager = AudioFileManager()
