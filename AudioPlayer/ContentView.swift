@@ -10,77 +10,94 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @StateObject private var audioPlayerService = AudioPlayerService()
+    @StateObject private var audioFileManager = AudioFileManager()
+    @StateObject private var settingsManager = SettingsManager()
+    @StateObject private var playlistManager: PlaylistManager
+    @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @ObservedObject private var localizationManager = LocalizationManager.shared
+    @State private var selectedTab = 0
+    
+    init() {
+        let context = PersistenceController.shared.container.viewContext
+        _playlistManager = StateObject(wrappedValue: PlaylistManager(context: context))
+    }
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
-                    }
+        TabView(selection: $selectedTab) {
+            LibraryGridView(navigateToPlayer: navigateToPlayer)
+                .tabItem {
+                    Image(systemName: "book")
+                        .accessibilityHidden(true)
+                    Text(LocalizationManager.shared.tabLibrary)
+                        .dynamicTypeSupport(.caption)
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                .tag(0)
+                .accessibilityLabel("Library tab")
+                .accessibilityHint("Browse your audio library")
+                .tabFocus(name: "Library", isActive: selectedTab == 0)
+            
+            PlaylistView()
+                .tabItem {
+                    Image(systemName: "music.note.list")
+                        .accessibilityHidden(true)
+                    Text(LocalizationManager.shared.localizedString("tab.playlist"))
+                        .dynamicTypeSupport(.caption)
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                .tag(1)
+                .accessibilityLabel("Playlist tab")
+                .accessibilityHint("Create and manage playlists")
+                .tabFocus(name: "Playlist", isActive: selectedTab == 1)
+            
+            AudioPlayerView()
+                .tabItem {
+                    Image(systemName: "play.circle")
+                        .accessibilityHidden(true)
+                    Text(LocalizationManager.shared.tabPlayer)
+                        .dynamicTypeSupport(.caption)
                 }
-            }
-            Text("Select an item")
+                .tag(2)
+                .accessibilityLabel("Player tab")
+                .accessibilityHint("Audio player controls")
+                .tabFocus(name: "Player", isActive: selectedTab == 2)
+            
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "gear")
+                        .accessibilityHidden(true)
+                    Text(LocalizationManager.shared.tabSettings)
+                        .dynamicTypeSupport(.caption)
+                }
+                .tag(3)
+                .accessibilityLabel("Settings tab")
+                .accessibilityHint("App settings and preferences")
+                .tabFocus(name: "Settings", isActive: selectedTab == 3)
+        }
+        .environmentObject(audioPlayerService)
+        .environmentObject(audioFileManager)
+        .environmentObject(settingsManager)
+        .environmentObject(playlistManager)
+        .environmentObject(accessibilityManager)
+        .environment(\.managedObjectContext, viewContext)
+        .accentColor(accessibilityManager.highContrastColor(base: .blue, highContrast: .primary))
+        .visualAccessibility(reducedMotion: true)
+        .onAppear {
+            // Set up the connection between AudioPlayerService and PlaylistManager
+            audioPlayerService.setPlaylistManager(playlistManager)
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    
+    private func navigateToPlayer() {
+        selectedTab = 2
     }
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        .environmentObject(AudioPlayerService())
+        .environmentObject(AudioFileManager())
+        .environmentObject(SettingsManager())
+        .environmentObject(AccessibilityManager())
 }
