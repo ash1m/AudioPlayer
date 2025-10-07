@@ -1,0 +1,20 @@
+"tab.library" = "Library";
+"tab.playlist" = "Playlist";
+"tab.player" = "Player";
+"tab.settings" = "Settings";
+
+"settings.title" = "Settings";
+"settings.accessibility" = "Accessibility";
+"settings.accessibility.label" = "Accessibility";
+"settings.accessibility.hint" = "Open accessibility settings";
+"settings.language" = "Language";
+"settings.language.label" = "App language";
+"settings.language.hint" = "Choose the app's display language";
+"language.currently.set" = "Currently set to %@";
+
+"settings.supported.formats" = "Supported formats";
+"settings.supported.formats.list" = "MP3, M4A/AAC, WAV, AIFF, FLAC (where supported)";
+"settings.import.description" = "Import audio files from the Files app, iCloud Drive, or other sources.";
+
+"settings.version" = "Version";
+"settings.build" = "Build";

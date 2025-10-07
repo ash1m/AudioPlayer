@@ -8,6 +8,12 @@
 import SwiftUI
 import CoreData
 
+enum AppView {
+    case library
+    case player
+    case settings
+}
+
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
@@ -17,7 +23,7 @@ struct ContentView: View {
     @StateObject private var playlistManager: PlaylistManager
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @ObservedObject private var localizationManager = LocalizationManager.shared
-    @State private var selectedTab = 0
+    @State private var currentView: AppView = .library
     
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -25,54 +31,43 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            LibraryGridView(navigateToPlayer: navigateToPlayer)
-                .tabItem {
-                    Image(systemName: "book")
-                        .accessibilityHidden(true)
-                    Text(LocalizationManager.shared.tabLibrary)
-                        .dynamicTypeSupport(.caption)
+        ZStack {
+            // Main content layer
+            Group {
+                switch currentView {
+                case .library:
+                    LibraryGridView(
+                        navigateToPlayer: { /* Player is now a slide-up overlay */ },
+                        navigateToSettings: { currentView = .settings }
+                    )
+                    
+                case .player:
+                    // This case is no longer used since player is now an overlay
+                    LibraryGridView(
+                        navigateToPlayer: { },
+                        navigateToSettings: { currentView = .settings }
+                    )
+                    
+                case .settings:
+                    NavigationStack {
+                        SettingsView()
+                            .navigationBarTitleDisplayMode(.large)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button("Library") {
+                                        currentView = .library
+                                    }
+                                }
+                            }
+                    }
                 }
-                .tag(0)
-                .accessibilityLabel("Library tab")
-                .accessibilityHint("Browse your audio library")
-                .tabFocus(name: "Library", isActive: selectedTab == 0)
+            }
             
-            PlaylistView()
-                .tabItem {
-                    Image(systemName: "music.note.list")
-                        .accessibilityHidden(true)
-                    Text(LocalizationManager.shared.localizedString("tab.playlist"))
-                        .dynamicTypeSupport(.caption)
-                }
-                .tag(1)
-                .accessibilityLabel("Playlist tab")
-                .accessibilityHint("Create and manage playlists")
-                .tabFocus(name: "Playlist", isActive: selectedTab == 1)
-            
-            AudioPlayerView()
-                .tabItem {
-                    Image(systemName: "play.circle")
-                        .accessibilityHidden(true)
-                    Text(LocalizationManager.shared.tabPlayer)
-                        .dynamicTypeSupport(.caption)
-                }
-                .tag(2)
-                .accessibilityLabel("Player tab")
-                .accessibilityHint("Audio player controls")
-                .tabFocus(name: "Player", isActive: selectedTab == 2)
-            
-            SettingsView()
-                .tabItem {
-                    Image(systemName: "gear")
-                        .accessibilityHidden(true)
-                    Text(LocalizationManager.shared.tabSettings)
-                        .dynamicTypeSupport(.caption)
-                }
-                .tag(3)
-                .accessibilityLabel("Settings tab")
-                .accessibilityHint("App settings and preferences")
-                .tabFocus(name: "Settings", isActive: selectedTab == 3)
+            // Slide-up player overlay (only show when there's an audio file)
+            if audioPlayerService.currentAudioFile != nil {
+                SlideUpPlayerView()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .environmentObject(audioPlayerService)
         .environmentObject(audioFileManager)
@@ -86,10 +81,6 @@ struct ContentView: View {
             // Set up the connection between AudioPlayerService and PlaylistManager
             audioPlayerService.setPlaylistManager(playlistManager)
         }
-    }
-    
-    private func navigateToPlayer() {
-        selectedTab = 2
     }
 }
 

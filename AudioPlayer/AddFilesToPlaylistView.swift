@@ -225,26 +225,30 @@ struct AddFileRow: View {
                     .accessibilityHidden(true)
                 
                 // Artwork thumbnail
-                AsyncImage(url: audioFile.artworkURL) { phase in
+                LocalAsyncImageWithPhase(url: audioFile.artworkURL) { phase in
                     switch phase {
                     case .success(let image):
-                        image
+                        return AnyView(image
                             .resizable()
                             .aspectRatio(1, contentMode: .fill)
                             .frame(width: 50, height: 50)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    case .failure(_), .empty:
-                        RoundedRectangle(cornerRadius: 8)
+                            .clipShape(RoundedRectangle(cornerRadius: 8)))
+                    case .failure(_):
+                        return AnyView(RoundedRectangle(cornerRadius: 8)
                             .fill(.secondary.opacity(0.3))
                             .frame(width: 50, height: 50)
                             .overlay(
                                 Image(systemName: "music.note")
                                     .foregroundColor(.secondary)
-                            )
-                    @unknown default:
-                        RoundedRectangle(cornerRadius: 8)
+                            ))
+                    case .empty:
+                        return AnyView(RoundedRectangle(cornerRadius: 8)
                             .fill(.secondary.opacity(0.3))
                             .frame(width: 50, height: 50)
+                            .overlay(
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                            ))
                     }
                 }
                 
@@ -262,6 +266,16 @@ struct AddFileRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .visualAccessibility(foreground: .secondary)
+                    
+                    // Original filename display
+                    Text(audioFile.fileName)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .opacity(0.6)
                         .visualAccessibility(foreground: .secondary)
                     
                     if audioFile.duration > 0 {

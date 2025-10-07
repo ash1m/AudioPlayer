@@ -83,8 +83,19 @@ class AudioFileManager: ObservableObject {
             }
         }
         
-        // Import individual files to root (no folder association)
+        // Analyze individual files for smart grouping by filename patterns
+        let smartGroups = await analyzeFilesForSmartGrouping(individualFiles, context: context)
+        
+        // Import individual files with smart grouping
         for fileURL in individualFiles {
+            // Start accessing security-scoped resource for individual files
+            let isAccessing = fileURL.startAccessingSecurityScopedResource()
+            defer {
+                if isAccessing {
+                    fileURL.stopAccessingSecurityScopedResource()
+                }
+            }
+            
             do {
                 // Validate file format first
                 try validateAudioFormat(url: fileURL)
@@ -92,8 +103,13 @@ class AudioFileManager: ObservableObject {
                 // Check for duplicates
                 try validateNoDuplicate(url: fileURL, existingNames: existingFileNames)
                 
-                // Import the file without folder association
-                try await importSingleAudioFile(url: fileURL, folder: nil, context: context)
+                // Determine if this file should go in a smart folder
+                let smartFolder = smartGroups.first { group in
+                    group.fileURLs.contains(fileURL)
+                }?.folder
+                
+                // Import the file with or without smart folder association
+                try await importSingleAudioFile(url: fileURL, folder: smartFolder, context: context)
                 results.append(ImportResult(url: fileURL, success: true))
                 
             } catch {
@@ -102,9 +118,24 @@ class AudioFileManager: ObservableObject {
             }
         }
         
+        // Update smart folder file counts
+        for smartGroup in smartGroups {
+            await MainActor.run {
+                smartGroup.folder.updateFileCount()
+            }
+        }
+        
         // Import files grouped by folder
         for (folderPath, folderData) in folderStructure {
             for fileURL in folderData.files {
+                // Start accessing security-scoped resource for folder files
+                let isAccessing = fileURL.startAccessingSecurityScopedResource()
+                defer {
+                    if isAccessing {
+                        fileURL.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
                 do {
                     // Validate file format first
                     try validateAudioFormat(url: fileURL)
@@ -140,9 +171,139 @@ class AudioFileManager: ObservableObject {
         return results
     }
     
+    // MARK: - Smart Grouping Methods
+    
+    private struct SmartGroup {
+        let folder: Folder
+        let fileURLs: [URL]
+        let pattern: String
+    }
+    
+    private func analyzeFilesForSmartGrouping(_ files: [URL], context: NSManagedObjectContext) async -> [SmartGroup] {
+        guard files.count >= 2 else { return [] } // Need at least 2 files to group
+        
+        // Extract filename patterns
+        var patternGroups: [String: [URL]] = [:]
+        
+        for fileURL in files {
+            let fileName = fileURL.lastPathComponent
+            let nameWithoutExtension = fileURL.deletingPathExtension().lastPathComponent
+            
+            // Find common patterns in the filename
+            let patterns = extractCommonPatterns(from: nameWithoutExtension)
+            
+            for pattern in patterns {
+                if patternGroups[pattern] == nil {
+                    patternGroups[pattern] = []
+                }
+                patternGroups[pattern]?.append(fileURL)
+            }
+        }
+        
+        // Sort patterns by specificity (longer patterns first) and file count
+        let sortedPatterns = patternGroups
+            .filter { $0.value.count >= 3 } // Only consider groups with 3+ files
+            .sorted { first, second in
+                // First priority: number of files (more files = better group)
+                if first.value.count != second.value.count {
+                    return first.value.count > second.value.count
+                }
+                // Second priority: pattern length (longer = more specific)
+                return first.key.count > second.key.count
+            }
+        
+        // Create smart groups, prioritizing longer/more specific patterns
+        var smartGroups: [SmartGroup] = []
+        var usedFiles: Set<URL> = []
+        
+        for (pattern, groupFiles) in sortedPatterns {
+            // Filter out files that are already used in other groups
+            let availableFiles = groupFiles.filter { !usedFiles.contains($0) }
+            
+            if availableFiles.count >= 3 { // Still need at least 3 files after filtering
+                let folderName = cleanPatternForFolderName(pattern)
+                let folderPath = "smart_group_\(UUID().uuidString)"
+                
+                let folder = await getOrCreateFolder(name: folderName, path: folderPath, parentFolder: nil, context: context)
+                
+                let smartGroup = SmartGroup(
+                    folder: folder,
+                    fileURLs: availableFiles,
+                    pattern: pattern
+                )
+                
+                smartGroups.append(smartGroup)
+                
+                // Mark these files as used
+                availableFiles.forEach { usedFiles.insert($0) }
+            }
+        }
+        
+        return smartGroups
+    }
+    
+    private func extractCommonPatterns(from filename: String) -> [String] {
+        var patterns: [String] = []
+        let lowercased = filename.lowercased()
+        
+        // Remove common separators and numbers for pattern matching
+        let cleanedName = lowercased
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: ".", with: " ")
+        
+        // Split into words and look for meaningful patterns
+        let words = cleanedName.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty && $0.count > 2 } // Filter out short words and numbers
+            .filter { word in
+                // Filter out common meaningless words and standalone numbers
+                let meaninglessWords = ["the", "and", "or", "of", "to", "in", "for", "with", "by", "at", "on", "as", "is", "was", "are", "were", "ch", "cd"]
+                return !meaninglessWords.contains(word) && !word.allSatisfy { $0.isNumber }
+            }
+        
+        // Create patterns from consecutive meaningful words
+        for i in 0..<words.count {
+            // Single word patterns
+            if words[i].count >= 4 { // Only consider longer words
+                patterns.append(words[i])
+            }
+            
+            // Two word patterns
+            if i < words.count - 1 {
+                let twoWordPattern = "\(words[i]) \(words[i + 1])"
+                patterns.append(twoWordPattern)
+            }
+            
+            // Three word patterns
+            if i < words.count - 2 {
+                let threeWordPattern = "\(words[i]) \(words[i + 1]) \(words[i + 2])"
+                patterns.append(threeWordPattern)
+            }
+        }
+        
+        return patterns
+    }
+    
+    private func cleanPatternForFolderName(_ pattern: String) -> String {
+        // Capitalize first letter of each word for a nice folder name
+        return pattern
+            .components(separatedBy: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     // MARK: - Folder Processing Methods
     
     private func processDirectory(_ url: URL, folderStructure: inout [String: (folder: Folder, files: [URL])], context: NSManagedObjectContext, parentFolder: Folder? = nil) async {
+        // Start accessing security-scoped resource for this directory
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
         do {
             let folderName = url.lastPathComponent
             let folderPath = url.path
@@ -157,13 +318,21 @@ class AudioFileManager: ObservableObject {
             let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
             
             for item in contents {
+                // Start accessing security-scoped resource for each child item
+                let isChildAccessing = item.startAccessingSecurityScopedResource()
+                defer {
+                    if isChildAccessing {
+                        item.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
                 var isItemDirectory: ObjCBool = false
                 guard FileManager.default.fileExists(atPath: item.path, isDirectory: &isItemDirectory) else {
                     continue
                 }
                 
                 if isItemDirectory.boolValue {
-                    // Recursively process subdirectory
+                    // Recursively process subdirectory (security scope will be handled in recursive call)
                     await processDirectory(item, folderStructure: &folderStructure, context: context, parentFolder: folder)
                 } else {
                     // Add audio file to this folder
@@ -231,6 +400,14 @@ class AudioFileManager: ObservableObject {
             
             var audioFiles: [URL] = []
             for item in contents {
+                // Start accessing security-scoped resource for each child item
+                let isChildAccessing = item.startAccessingSecurityScopedResource()
+                defer {
+                    if isChildAccessing {
+                        item.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
                 let subFiles = await extractFilesFromURL(item)
                 audioFiles.append(contentsOf: subFiles)
             }
@@ -476,6 +653,93 @@ class AudioFileManager: ObservableObject {
     func fileExists(for audioFile: AudioFile) -> Bool {
         guard let fileURL = audioFile.fileURL else { return false }
         return FileManager.default.fileExists(atPath: fileURL.path)
+    }
+    
+    // MARK: - Artwork Diagnostics
+    
+    func debugArtworkStatus(for audioFile: AudioFile) {
+        print("🎨 Debugging artwork for: \(audioFile.title ?? "Unknown")")
+        print("   artworkPath: \(audioFile.artworkPath ?? "nil")")
+        
+        if let artworkURL = audioFile.artworkURL {
+            print("   artworkURL: \(artworkURL.path)")
+            let exists = FileManager.default.fileExists(atPath: artworkURL.path)
+            print("   File exists: \(exists)")
+            
+            if exists {
+                do {
+                    let attributes = try FileManager.default.attributesOfItem(atPath: artworkURL.path)
+                    if let fileSize = attributes[.size] as? Int64 {
+                        print("   File size: \(fileSize) bytes")
+                    }
+                } catch {
+                    print("   Error getting file attributes: \(error)")
+                }
+            }
+        } else {
+            print("   artworkURL: nil")
+        }
+    }
+    
+    func listArtworkDirectory() {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("🎨 Documents directory not found")
+            return
+        }
+        
+        let artworkDirectory = documentsDirectory.appendingPathComponent("Artwork")
+        print("🎨 Artwork directory: \(artworkDirectory.path)")
+        
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: artworkDirectory, includingPropertiesForKeys: [.fileSizeKey], options: [])
+            print("🎨 Found \(files.count) artwork files:")
+            
+            for file in files {
+                do {
+                    let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+                    let fileSize = attributes[.size] as? Int64 ?? 0
+                    print("   - \(file.lastPathComponent) (\(fileSize) bytes)")
+                } catch {
+                    print("   - \(file.lastPathComponent) (size unknown)")
+                }
+            }
+        } catch {
+            print("🎨 Error listing artwork directory: \(error)")
+        }
+    }
+    
+    func verifyAllArtwork(context: NSManagedObjectContext) {
+        let fetchRequest: NSFetchRequest<AudioFile> = AudioFile.fetchRequest()
+        
+        do {
+            let audioFiles = try context.fetch(fetchRequest)
+            print("🎨 Verifying artwork for \(audioFiles.count) audio files:")
+            
+            var hasArtworkPath = 0
+            var artworkFileExists = 0
+            var artworkFileMissing = 0
+            
+            for audioFile in audioFiles {
+                if audioFile.artworkPath != nil {
+                    hasArtworkPath += 1
+                    
+                    if let artworkURL = audioFile.artworkURL, FileManager.default.fileExists(atPath: artworkURL.path) {
+                        artworkFileExists += 1
+                    } else {
+                        artworkFileMissing += 1
+                        print("   ❌ Missing artwork for: \(audioFile.title ?? "Unknown")")
+                    }
+                }
+            }
+            
+            print("🎨 Summary:")
+            print("   - Files with artworkPath: \(hasArtworkPath)")
+            print("   - Artwork files exist: \(artworkFileExists)")
+            print("   - Artwork files missing: \(artworkFileMissing)")
+            
+        } catch {
+            print("🎨 Error fetching audio files: \(error)")
+        }
     }
 }
 

@@ -32,6 +32,10 @@ class AudioPlayerService: NSObject, ObservableObject {
     private var currentPlaylistItemIndex: Int = 0
     private weak var playlistManager: PlaylistManager?
     
+    // MARK: - Folder Playback Properties
+    private var currentFolder: Folder?
+    private var isPlayingFromFolder = false
+    
     override init() {
         super.init()
         setupAudioSession()
@@ -243,6 +247,12 @@ class AudioPlayerService: NSObject, ObservableObject {
         guard let audioFile = currentAudioFile else { return }
         
         audioFile.currentPosition = currentTime
+        
+        // Also save folder state if playing from a folder
+        if isPlayingFromFolder, let folder = currentFolder {
+            folder.savePlaybackState(audioFile: audioFile, position: currentTime)
+        }
+        
         try? viewContext?.save()
     }
     
@@ -305,6 +315,100 @@ class AudioPlayerService: NSObject, ObservableObject {
         currentPlaylist = nil
         currentPlaylistItemIndex = 0
     }
+    
+    // MARK: - Folder Playback Methods
+    
+    func playFromFolder(_ folder: Folder, resumeFromSavedState: Bool = true, context: NSManagedObjectContext) {
+        self.currentFolder = folder
+        self.isPlayingFromFolder = true
+        
+        // Clear playlist playback state
+        stopPlaylistPlayback()
+        
+        var audioFileToPlay: AudioFile?
+        var resumePosition: Double = 0.0
+        
+        if resumeFromSavedState && folder.hasPlaybackState {
+            // Resume from saved state
+            audioFileToPlay = folder.getResumeAudioFile()
+            resumePosition = folder.getResumePosition()
+        } else {
+            // Start from the beginning
+            audioFileToPlay = folder.audioFilesArray.first
+            resumePosition = 0.0
+        }
+        
+        guard let audioFile = audioFileToPlay else { return }
+        
+        loadAudioFile(audioFile, context: context)
+        
+        // Seek to the resume position if needed
+        if resumePosition > 0 {
+            seek(to: resumePosition)
+        }
+        
+        play()
+    }
+    
+    func playNextInFolder() -> Bool {
+        guard isPlayingFromFolder,
+              let folder = currentFolder,
+              let currentFile = currentAudioFile else { return false }
+        
+        let audioFiles = folder.audioFilesArray
+        guard let currentIndex = audioFiles.firstIndex(of: currentFile),
+              currentIndex < audioFiles.count - 1 else { return false }
+        
+        let nextFile = audioFiles[currentIndex + 1]
+        loadAudioFile(nextFile, context: viewContext)
+        play()
+        return true
+    }
+    
+    func playPreviousInFolder() -> Bool {
+        guard isPlayingFromFolder,
+              let folder = currentFolder,
+              let currentFile = currentAudioFile else { return false }
+        
+        let audioFiles = folder.audioFilesArray
+        guard let currentIndex = audioFiles.firstIndex(of: currentFile),
+              currentIndex > 0 else { return false }
+        
+        let previousFile = audioFiles[currentIndex - 1]
+        loadAudioFile(previousFile, context: viewContext)
+        play()
+        return true
+    }
+    
+    func stopFolderPlayback() {
+        isPlayingFromFolder = false
+        currentFolder = nil
+    }
+    
+    func clearCurrentFile() {
+        // Stop playback
+        stop()
+        
+        // Clear the current audio file
+        currentAudioFile = nil
+        
+        // Reset player state
+        duration = 0
+        currentTime = 0
+        
+        // Clear the audio player instance
+        audioPlayer = nil
+        
+        // Stop playlist playback if active
+        if isPlayingFromPlaylist {
+            stopPlaylistPlayback()
+        }
+        
+        // Stop folder playback if active
+        if isPlayingFromFolder {
+            stopFolderPlayback()
+        }
+    }
 }
 
 // MARK: - AVAudioPlayerDelegate
@@ -320,12 +424,23 @@ extension AudioPlayerService: AVAudioPlayerDelegate {
         currentAudioFile?.currentPosition = 0
         try? viewContext?.save()
         
-        // Auto-play next track if continuous playback is enabled and playing from playlist
-        if continuousPlaybackEnabled && isPlayingFromPlaylist && flag {
+        // Auto-play next track if continuous playback is enabled
+        if continuousPlaybackEnabled && flag {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                if !(self?.playNext() ?? false) {
-                    // No next track available, stop playlist playback
-                    self?.stopPlaylistPlayback()
+                var playedNext = false
+                
+                if self?.isPlayingFromPlaylist == true {
+                    playedNext = self?.playNext() ?? false
+                    if !playedNext {
+                        // No next track available, stop playlist playback
+                        self?.stopPlaylistPlayback()
+                    }
+                } else if self?.isPlayingFromFolder == true {
+                    playedNext = self?.playNextInFolder() ?? false
+                    if !playedNext {
+                        // No next track available, stop folder playback
+                        self?.stopFolderPlayback()
+                    }
                 }
             }
         }

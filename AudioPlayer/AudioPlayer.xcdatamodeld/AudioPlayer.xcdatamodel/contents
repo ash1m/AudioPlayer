@@ -23,7 +23,10 @@
         <attribute name="path" attributeType="String"/>
         <attribute name="dateAdded" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="fileCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastPlayedPosition" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lastPlayedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="audioFiles" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AudioFile" inverseName="folder" inverseEntity="AudioFile"/>
+        <relationship name="lastPlayedAudioFile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioFile"/>
         <relationship name="parentFolder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="subFolders" inverseEntity="Folder"/>
         <relationship name="subFolders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Folder" inverseName="parentFolder" inverseEntity="Folder"/>
     </entity>

@@ -130,21 +130,21 @@ struct PlaylistView: View {
                     })
                     .onDelete { indexSet in
                         let currentItems = playlist.orderedItems
-                        var deletedTitles: [String] = []
+                        var deletedFileNames: [String] = []
                         for index in indexSet {
                             if index < currentItems.count {
                                 let item = currentItems[index]
-                                let title = item.audioFile?.title ?? "Unknown title"
-                                deletedTitles.append(title)
+                                let fileName = item.audioFile?.fileNameWithoutExtension ?? "Unknown file"
+                                deletedFileNames.append(fileName)
                                 playlistManager.removePlaylistItem(item)
                             }
                         }
                         
                         // Announce deletion for VoiceOver users
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            let announcement = deletedTitles.count == 1 ? 
-                                "Removed \(deletedTitles.first!) from playlist" :
-                                "Removed \(deletedTitles.count) tracks from playlist"
+                            let announcement = deletedFileNames.count == 1 ? 
+                                "Removed \(deletedFileNames.first!) from playlist" :
+                                "Removed \(deletedFileNames.count) tracks from playlist"
                             accessibilityManager.announceMessage(announcement)
                         }
                     }
@@ -217,32 +217,36 @@ struct PlaylistItemRow: View {
                 .accessibilityHidden(true)
             
             // Artwork thumbnail
-            AsyncImage(url: playlistItem.audioFile?.artworkURL) { phase in
+            LocalAsyncImageWithPhase(url: playlistItem.audioFile?.artworkURL) { phase in
                 switch phase {
                 case .success(let image):
-                    image
+                    return AnyView(image
                         .resizable()
                         .aspectRatio(1, contentMode: .fill)
                         .frame(width: 50, height: 50)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                case .failure(_), .empty:
-                    RoundedRectangle(cornerRadius: 8)
+                        .clipShape(RoundedRectangle(cornerRadius: 8)))
+                case .failure(_):
+                    return AnyView(RoundedRectangle(cornerRadius: 8)
                         .fill(.secondary.opacity(0.3))
                         .frame(width: 50, height: 50)
                         .overlay(
                             Image(systemName: "music.note")
                                 .foregroundColor(.secondary)
-                        )
-                @unknown default:
-                    RoundedRectangle(cornerRadius: 8)
+                        ))
+                case .empty:
+                    return AnyView(RoundedRectangle(cornerRadius: 8)
                         .fill(.secondary.opacity(0.3))
                         .frame(width: 50, height: 50)
+                        .overlay(
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        ))
                 }
             }
             
             // Track info
             VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                Text(playlistItem.audioFile?.title ?? "Unknown Title")
+                Text(playlistItem.audioFile?.fileNameWithoutExtension ?? "Unknown File")
                     .font(.headline)
                     .foregroundColor(isCurrentlyPlaying ? .primary : .primary)
                     .lineLimit(1)
@@ -253,6 +257,17 @@ struct PlaylistItemRow: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .visualAccessibility(foreground: .secondary)
+                
+                // Original filename display
+                if let fileName = playlistItem.audioFile?.fileName {
+                    Text(fileName)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .opacity(0.6)
+                        .visualAccessibility(foreground: .secondary)
+                }
                 
                 if let duration = playlistItem.audioFile?.duration {
                     Text(TimeInterval(duration).formattedDuration)
@@ -286,12 +301,12 @@ struct PlaylistItemRow: View {
     // MARK: - Accessibility Computed Properties
     
     private var playlistItemAccessibilityLabel: String {
-        let title = playlistItem.audioFile?.title ?? "Unknown Title"
+        let fileName = playlistItem.audioFile?.fileNameWithoutExtension ?? "Unknown File"
         let artist = playlistItem.audioFile?.artist ?? "Unknown Artist"
         let order = Int(playlistItem.order) + 1 // Convert to 1-based index for users
         let position = "Track \(order)"
         let status = isCurrentlyPlaying ? (audioPlayerService.isPlaying ? ", currently playing" : ", currently selected") : ""
-        return "\(position): \(title) by \(artist)\(status)"
+        return "\(position): \(fileName) by \(artist)\(status)"
     }
     
     private var playlistItemAccessibilityHint: String {

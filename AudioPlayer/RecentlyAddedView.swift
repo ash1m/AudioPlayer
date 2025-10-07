@@ -48,6 +48,14 @@ struct RecentlyAddedView: View {
                             }
                         }
                         
+                        // Original filename display
+                        Text(audioFile.fileName)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .opacity(0.6)
+                        
                         Text(formatRecentDate(audioFile.dateAdded))
                             .font(.caption2)
                             .foregroundColor(.blue)

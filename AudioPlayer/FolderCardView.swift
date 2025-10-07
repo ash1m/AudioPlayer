@@ -10,6 +10,9 @@ import CoreData
 
 struct FolderGridCard: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var playlistManager: PlaylistManager
+    @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let folder: Folder
     let artworkSize: CGFloat
@@ -17,26 +20,27 @@ struct FolderGridCard: View {
     let onDelete: (Folder) -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            playFolderAsPlaylist()
+        }) {
             VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                // Large folder icon container with consistent size
+                // Artwork container styled like audio files
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(LinearGradient(
                             colors: [
-                                accessibilityManager.highContrastColor(base: .orange.opacity(0.2), highContrast: .black.opacity(0.4)),
-                                accessibilityManager.highContrastColor(base: .yellow.opacity(0.2), highContrast: .black.opacity(0.6))
+                                accessibilityManager.highContrastColor(base: .green.opacity(0.2), highContrast: .black.opacity(0.4)),
+                                accessibilityManager.highContrastColor(base: .blue.opacity(0.2), highContrast: .black.opacity(0.6))
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ))
                         .frame(width: artworkSize, height: artworkSize)
                     
-                    // Large folder icon
-                    Image(systemName: "folder.fill")
+                    // Playlist icon instead of folder icon
+                    Image(systemName: "play.rectangle.fill")
                         .font(.system(size: artworkSize * 0.4))
-                        .foregroundColor(.orange)
-                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .foregroundColor(.white)
                         .frame(width: artworkSize, height: artworkSize)
                     
                     // File count badge in top right corner
@@ -46,11 +50,11 @@ struct FolderGridCard: View {
                                 Spacer()
                                 Text("\(folder.fileCount)")
                                     .font(.caption)
-                                    .fontWeight(.bold)
+                                    .fontWeight(.semibold)
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.blue)
+                                    .background(.black.opacity(0.8))
                                     .clipShape(Capsule())
                                     .padding(8)
                             }
@@ -58,21 +62,57 @@ struct FolderGridCard: View {
                         }
                         .frame(width: artworkSize, height: artworkSize)
                     }
+                    
+                    // Duration overlay (total duration of all files)
+                    if totalDuration > 0 {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Text(TimeInterval(totalDuration).formattedDuration)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.black.opacity(0.8))
+                                    .clipShape(Capsule())
+                                    .padding(8)
+                            }
+                        }
+                        .frame(width: artworkSize, height: artworkSize)
+                    }
+                    
                 }
                 
-                // Text content area with improved typography
+                // Progress bar for folders with playback state (outside the artwork area)
+                if folder.hasPlaybackState && folder.playbackProgress > 0 {
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(.secondary.opacity(0.3))
+                            .frame(height: 4)
+                        
+                        Rectangle()
+                            .fill(.blue)
+                            .frame(width: artworkSize * folder.playbackProgress, height: 4)
+                    }
+                    .frame(width: artworkSize)
+                    .clipShape(Capsule())
+                }
+                
+                // Text content area styled like audio file
                 VStack(alignment: .leading, spacing: 4) {
                     Text(folder.name)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .truncationMode(.tail)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                         .visualAccessibility()
                     
-                    Text("\(folder.fileCount) file\(folder.fileCount == 1 ? "" : "s")")
+                    Text("\(folder.fileCount) track\(folder.fileCount == 1 ? "" : "s")")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -107,32 +147,61 @@ struct FolderGridCard: View {
         .visualAccessibility(reducedMotion: true)
     }
     
+    // MARK: - Computed Properties
+    
+    private var totalDuration: Double {
+        return folder.audioFilesArray.reduce(0) { total, audioFile in
+            total + audioFile.duration
+        }
+    }
+    
+    // MARK: - Playlist Functionality
+    
+    private func playFolderAsPlaylist() {
+        let audioFiles = folder.audioFilesArray
+        guard !audioFiles.isEmpty else { return }
+        
+        // Use the new folder playback functionality instead of playlist
+        audioPlayerService.playFromFolder(folder, resumeFromSavedState: true, context: viewContext)
+    }
+    
     // MARK: - Computed Properties for Accessibility
     
     private var folderAccessibilityLabel: String {
-        return "Folder: \(folder.name)"
+        return "Audio series: \(folder.name)"
     }
     
     private var folderAccessibilityHint: String {
-        return "Double tap to open folder"
+        if folder.hasPlaybackState {
+            return "Double tap to resume playback from where you left off"
+        } else {
+            return "Double tap to play all tracks in sequence"
+        }
     }
     
     private var folderAccessibilityValue: String {
-        let fileCountText = folder.fileCount == 1 ? "1 file" : "\(folder.fileCount) files"
-        return "Contains \(fileCountText)"
+        let trackCountText = folder.fileCount == 1 ? "1 track" : "\(folder.fileCount) tracks"
+        let durationText = totalDuration > 0 ? ", Total duration: \(TimeInterval(totalDuration).accessibleDuration)" : ""
+        let progressText = folder.hasPlaybackState ? ", \(Int(folder.playbackProgress * 100))% complete" : ""
+        return "\(trackCountText)\(durationText)\(progressText)"
     }
     
 }
 
 struct FolderListCard: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var playlistManager: PlaylistManager
+    @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let folder: Folder
     let action: () -> Void
     let onDelete: (Folder) -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            playFolderAsPlaylist()
+        }) {
             HStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
                 folderIconView
                 folderContentView
@@ -160,19 +229,43 @@ struct FolderListCard: View {
         .visualAccessibility(reducedMotion: true)
     }
     
+    // MARK: - Computed Properties
+    
+    private var totalDuration: Double {
+        return folder.audioFilesArray.reduce(0) { total, audioFile in
+            total + audioFile.duration
+        }
+    }
+    
+    // MARK: - Playlist Functionality
+    
+    private func playFolderAsPlaylist() {
+        let audioFiles = folder.audioFilesArray
+        guard !audioFiles.isEmpty else { return }
+        
+        // Use the new folder playback functionality instead of playlist
+        audioPlayerService.playFromFolder(folder, resumeFromSavedState: true, context: viewContext)
+    }
+    
     // MARK: - Computed Properties for Accessibility
     
     private var folderAccessibilityLabel: String {
-        return "Folder: \(folder.name)"
+        return "Audio series: \(folder.name)"
     }
     
     private var folderAccessibilityHint: String {
-        return "Double tap to open folder"
+        if folder.hasPlaybackState {
+            return "Double tap to resume playback from where you left off"
+        } else {
+            return "Double tap to play all tracks in sequence"
+        }
     }
     
     private var folderAccessibilityValue: String {
-        let fileCountText = folder.fileCount == 1 ? "1 file" : "\(folder.fileCount) files"
-        return "Contains \(fileCountText)"
+        let trackCountText = folder.fileCount == 1 ? "1 track" : "\(folder.fileCount) tracks"
+        let durationText = totalDuration > 0 ? ", Total duration: \(TimeInterval(totalDuration).accessibleDuration)" : ""
+        let progressText = folder.hasPlaybackState ? ", \(Int(folder.playbackProgress * 100))% complete" : ""
+        return "\(trackCountText)\(durationText)\(progressText)"
     }
     
     // MARK: - Component Views
@@ -182,17 +275,17 @@ struct FolderListCard: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(LinearGradient(
                     colors: [
-                        accessibilityManager.highContrastColor(base: .orange.opacity(0.3), highContrast: .black.opacity(0.5)),
-                        accessibilityManager.highContrastColor(base: .yellow.opacity(0.3), highContrast: .black.opacity(0.7))
+                        accessibilityManager.highContrastColor(base: .green.opacity(0.3), highContrast: .black.opacity(0.5)),
+                        accessibilityManager.highContrastColor(base: .blue.opacity(0.3), highContrast: .black.opacity(0.7))
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
                 .frame(width: 60, height: 60)
             
-            Image(systemName: "folder.fill")
+            Image(systemName: "play.rectangle.fill")
                 .font(.title2)
-                .foregroundColor(.orange)
+                .foregroundColor(.white)
             
             // File count badge
             if folder.fileCount > 0 {
@@ -224,11 +317,21 @@ struct FolderListCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .visualAccessibility()
             
-            Text("\(folder.fileCount) file\(folder.fileCount == 1 ? "" : "s")")
+            Text("\(folder.fileCount) track\(folder.fileCount == 1 ? "" : "s")")
                 .dynamicTypeSupport(.caption, maxSize: .accessibility1, lineLimit: 1)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .visualAccessibility(foreground: .secondary)
+            
+            // Show progress bar if folder has playback state
+            if folder.hasPlaybackState && folder.playbackProgress > 0 {
+                ProgressView(value: folder.playbackProgress)
+                    .progressViewStyle(LinearProgressViewStyle(tint: .green))
+                    .background(Color.secondary.opacity(0.3))
+                    .clipShape(Capsule())
+                    .frame(height: 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             
             // Show folder path if it's not root
             if folder.path != "/" && !folder.path.isEmpty {

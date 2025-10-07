@@ -3,7 +3,7 @@
 //  AudioPlayer
 //
 //  Created by Ashim S on 2025/09/15.
-//
+/*
 
 import SwiftUI
 import CoreData
@@ -90,7 +90,7 @@ struct AudioPlayerView: View {
     }
     
     // MARK: - View Components
-    private var albumArtView: some View {
+/*    private var albumArtView: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .fill(LinearGradient(
@@ -98,29 +98,26 @@ struct AudioPlayerView: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
-                .frame(width: 280, height: 280)
+                .frame(width: 224, height: 224)
             
             if let artworkURL = audioPlayerService.currentAudioFile?.artworkURL {
-                AsyncImage(url: artworkURL) { phase in
+                LocalAsyncImageWithPhase(url: artworkURL) { phase in
                     switch phase {
                     case .success(let image):
-                        image
+                        return AnyView(image
                             .resizable()
                             .aspectRatio(1, contentMode: .fill)
-                            .frame(width: 280, height: 280)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                    case .failure(_):
-                        Image(systemName: "music.note")
+                            .frame(width: 224, height: 224)
+                            .clipShape(RoundedRectangle(cornerRadius: 20)))
+                    case .failure(let error):
+                        let _ = print("🎨 LocalAsyncImage (player) failed to load artwork: \(error)")
+                        return AnyView(Image(systemName: "music.note")
                             .font(.system(size: 60))
-                            .foregroundColor(.white)
+                            .foregroundColor(.white))
                     case .empty:
-                        ProgressView()
+                        return AnyView(ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(1.2)
-                    @unknown default:
-                        Image(systemName: "music.note")
-                            .font(.system(size: 60))
-                            .foregroundColor(.white)
+                            .scaleEffect(1.2))
                     }
                 }
                 .accessibilityLabel("Album artwork")
@@ -133,28 +130,32 @@ struct AudioPlayerView: View {
                     .accessibilityHidden(true)
             }
         }
-    }
+    }*/
     
-    private var songInfoView: some View {
+/*    private var songInfoView: some View {
         VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
             Text(audioPlayerService.currentAudioFile?.title ?? "No Song Selected")
-                .dynamicTypeSupport(.title2, maxSize: .accessibility3, lineLimit: 3)
-                .fontWeight(.semibold)
+                .font(.title2)
+                .fontWeight(.medium)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityLabel("Currently playing: \(audioPlayerService.currentAudioFile?.title ?? "No Song Selected")")
                 .visualAccessibility()
             
             Text(audioPlayerService.currentAudioFile?.artist ?? "Unknown Artist")
-                .dynamicTypeSupport(.subheadline, maxSize: .accessibility2, lineLimit: 2)
-                .foregroundColor(.secondary)
+                .font(.subheadline)
                 .accessibilityLabel("Artist: \(audioPlayerService.currentAudioFile?.artist ?? "Unknown Artist")")
-                .visualAccessibility(foreground: .secondary)
+                .visualAccessibility()
         }
         .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
+        .padding(.vertical, AccessibleSpacing.standard(for: dynamicTypeSize))
+        .background(
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color.black.opacity(accessibilityManager.isReduceTransparencyEnabled ? 0.3 : 0.2))
+        )
         .accessibilityElement(children: .combine)
     }
-    
+ 
     private var progressSliderView: some View {
         VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
             Slider(value: Binding(
@@ -168,6 +169,7 @@ struct AudioPlayerView: View {
                     }
                 }
             ), in: 0...max(audioPlayerService.duration, 1))
+                .scaleEffect(0.9)
                 .accentColor(.blue)
                 .accessibilityLabel("Playback progress")
                 .accessibilityValue(progressAccessibilityValue)
@@ -187,7 +189,7 @@ struct AudioPlayerView: View {
             
             HStack {
                 Text("\(TimeInterval(audioPlayerService.currentTime).formattedDuration) / \(TimeInterval(audioPlayerService.duration).formattedDuration)")
-                    .dynamicTypeSupport(.caption, maxSize: .accessibility1)
+                    .systemFontWithWeight(.regular, size: .caption)
                     .foregroundColor(.secondary)
                     .accessibilityLabel(timeDisplayAccessibilityLabel)
                     .visualAccessibility(foreground: .secondary)
@@ -198,7 +200,7 @@ struct AudioPlayerView: View {
         }
         .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
     }
-    
+    */
     private var playbackControlsView: some View {
         HStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
             Button(action: {
@@ -260,7 +262,7 @@ struct AudioPlayerView: View {
                     .font(.caption)
                 if accessibilityManager.sleepTimerActive {
                     Text("\(Int(accessibilityManager.sleepTimerRemaining / 60))m")
-                        .dynamicTypeSupport(.caption2, maxSize: .accessibility1)
+                        .systemFontWithWeight(.regular, size: .caption2)
                 }
             }
             .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
@@ -281,7 +283,7 @@ struct AudioPlayerView: View {
     private var speedButton: some View {
         Button(action: { isShowingSpeedOptions.toggle() }) {
             Text("\(audioPlayerService.playbackRate, specifier: "%.1f")x")
-                .dynamicTypeSupport(.subheadline, maxSize: .accessibility1)
+                .systemFontWithWeight(.medium, size: .controlLabel)
                 .padding(.horizontal, AccessibleSpacing.standard(for: dynamicTypeSize))
                 .padding(.vertical, AccessibleSpacing.compact(for: dynamicTypeSize))
                 .background(
@@ -307,25 +309,50 @@ struct AudioPlayerView: View {
     }
     
     private var mainContentView: some View {
-        VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-            Spacer()
+        ZStack {
+            // Background image
+            Image("player-background")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea(.all)
+                .accessibilityHidden(true)
             
-            // Album Art
-            albumArtView
+            // Dark overlay for better readability
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.3),
+                            Color.black.opacity(0.5)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .ignoresSafeArea(.all)
+                .accessibilityHidden(true)
             
-            // Song Info
-            songInfoView
-            
-            // Progress Slider
-            progressSliderView
-            
-            // Playback Controls
-            playbackControlsView
-            
-            // Speed Control and Sleep Timer
-            speedAndTimerControlsView
-            
-            Spacer()
+            VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
+                Spacer()
+                
+                // Album Art
+               // albumArtView
+                
+                // Song Info
+                //songInfoView
+                
+                // Progress Slider
+                //progressSliderView
+                
+                // Playback Controls
+                playbackControlsView
+                
+                // Speed Control and Sleep Timer
+                speedAndTimerControlsView
+                
+                Spacer()
+            }
+            .padding(.top, 75)
         }
     }
     
@@ -417,3 +444,4 @@ struct AudioPlayerView: View {
         .environmentObject(AudioFileManager())
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
+*/

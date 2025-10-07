@@ -50,6 +50,17 @@ struct AudioLibraryView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
+                    // Debug artwork button (only show in debug builds)
+                    #if DEBUG
+                    Button(action: {
+                        debugArtwork()
+                    }) {
+                        Image(systemName: "paintbrush.pointed")
+                            .font(.title2)
+                            .foregroundColor(.orange)
+                    }
+                    #endif
+                    
                     Button(action: {
                         isShowingDocumentPicker = true
                     }) {
@@ -148,6 +159,21 @@ struct AudioLibraryView: View {
             }
         }
     }
+    
+    #if DEBUG
+    private func debugArtwork() {
+        print("🎨 ==== ARTWORK DEBUG SESSION ====")
+        audioFileManager.listArtworkDirectory()
+        audioFileManager.verifyAllArtwork(context: viewContext)
+        
+        // Debug first few files individually
+        let sampleFiles = Array(audioFiles.prefix(3))
+        for audioFile in sampleFiles {
+            audioFileManager.debugArtworkStatus(for: audioFile)
+        }
+        print("🎨 ==== END ARTWORK DEBUG SESSION ====")
+    }
+    #endif
 }
 
 struct AudioFileRowView: View {
@@ -161,6 +187,15 @@ struct AudioFileRowView: View {
                 Text(audioFile.artist ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                // Original filename display
+                Text(audioFile.fileName)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .opacity(0.6)
+                
                 Text(TimeInterval(audioFile.duration).formattedDuration)
                     .font(.caption)
                     .foregroundColor(.secondary)

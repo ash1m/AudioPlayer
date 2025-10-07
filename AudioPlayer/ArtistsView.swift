@@ -52,6 +52,15 @@ struct ArtistsView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
+                                
+                                // Original filename display
+                                Text(audioFile.fileName)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                    .opacity(0.6)
+                                
                                 if audioFile.duration > 0 {
                                     Text(TimeInterval(audioFile.duration).formattedDuration)
                                         .font(.caption2)

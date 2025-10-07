@@ -105,10 +105,14 @@ extension FolderNavigationManager {
             request.predicate = NSPredicate(format: "parentFolder == nil")
         }
         
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Folder.name, ascending: true)]
+        // Fetch without sorting - we'll sort naturally after fetching
         
         do {
-            return try context.fetch(request)
+            let folders = try context.fetch(request)
+            // Sort naturally by folder name
+            return folders.sorted { first, second in
+                return first.name.isNaturallyLessThan(second.name)
+            }
         } catch {
             print("Error fetching folders: \(error)")
             return []
@@ -127,10 +131,14 @@ extension FolderNavigationManager {
             request.predicate = NSPredicate(format: "folder == nil")
         }
         
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \AudioFile.title, ascending: true)]
+        // Fetch without sorting - we'll sort naturally after fetching
         
         do {
-            return try context.fetch(request)
+            let files = try context.fetch(request)
+            // Sort naturally by filename (without extension)
+            return files.sorted { first, second in
+                return first.displayNameForSorting.isNaturallyLessThan(second.displayNameForSorting)
+            }
         } catch {
             print("Error fetching audio files: \(error)")
             return []
