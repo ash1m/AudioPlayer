@@ -107,4 +107,5 @@ struct SettingsView: View {
         .environmentObject(AudioFileManager())
         .environmentObject(AudioPlayerService())
         .environmentObject(AccessibilityManager())
+        .environmentObject(LocalizationManager.shared)
 }

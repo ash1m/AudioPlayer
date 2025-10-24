@@ -10,24 +10,27 @@ import SwiftUI
 struct SleepTimerView: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var localizationManager: LocalizationManager
     @Environment(\.dismiss) var dismiss
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     
     @State private var selectedDuration: TimeInterval = 900 // 15 minutes default
-    @State private var customMinutes: Int = 15
-    @State private var isShowingCustomPicker = false
     
-    private let presetDurations: [(String, TimeInterval)] = [
-        ("5 minutes", 300),
-        ("10 minutes", 600),
-        ("15 minutes", 900),
-        ("30 minutes", 1800),
-        ("45 minutes", 2700),
-        ("1 hour", 3600),
-        ("1.5 hours", 5400),
-        ("2 hours", 7200),
-        ("Custom", -1)
-    ]
+    // Generate 5-minute intervals from 5 to 60 minutes
+    private var presetDurations: [(String, TimeInterval)] {
+        var durations: [(String, TimeInterval)] = []
+        
+        // Add 5-minute intervals from 5 to 60 minutes
+        for minutes in stride(from: 5, through: 60, by: 5) {
+            if minutes == 60 {
+                durations.append((localizationManager.sleepTimerHour, TimeInterval(minutes * 60)))
+            } else {
+                durations.append((localizationManager.sleepTimerMinutesFormat(minutes), TimeInterval(minutes * 60)))
+            }
+        }
+        
+        return durations
+    }
     
     var body: some View {
         NavigationStack {
@@ -40,13 +43,13 @@ struct SleepTimerView: View {
                         .accessibilityHidden(true)
                         .highContrastSupport(normal: .accentColor, highContrast: .primary)
                     
-                    Text("Sleep Timer")
+                    Text(localizationManager.sleepTimerTitle)
                         .dynamicTypeSupport(.title, maxSize: .accessibility3)
                         .fontWeight(.semibold)
                         .accessibilityAddTraits(.isHeader)
                         .visualAccessibility()
                     
-                    Text("Set a timer to automatically pause playback")
+                    Text(localizationManager.sleepTimerDescription)
                         .dynamicTypeSupport(.body, maxSize: .accessibility2, lineLimit: 3)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
@@ -71,25 +74,22 @@ struct SleepTimerView: View {
                 actionButtonsView
             }
             .accessiblePadding(dynamicTypeSize: dynamicTypeSize)
-            .navigationTitle("Sleep Timer")
+            .navigationTitle(localizationManager.sleepTimerTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(accessibilityManager.sleepTimerActive)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(localizationManager.sleepTimerDone) {
                         dismiss()
                         if accessibilityManager.sleepTimerActive {
-                            accessibilityManager.announceMessage("Sleep timer is running")
+                            accessibilityManager.announceMessage(localizationManager.sleepTimerRunning)
                         }
                     }
-                    .accessibilityLabel("Close sleep timer")
-                    .accessibilityHint("Return to player")
+                    .accessibilityLabel(localizationManager.sleepTimerCloseLabel)
+                    .accessibilityHint(localizationManager.sleepTimerCloseHint)
                     .accessibleTouchTarget()
                     .visualAccessibility()
                 }
-            }
-            .sheet(isPresented: $isShowingCustomPicker) {
-                customTimerPickerView
             }
         }
         .visualAccessibility(reducedMotion: true)
@@ -102,7 +102,7 @@ struct SleepTimerView: View {
     
     private var currentTimerStatusView: some View {
         VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-            Text("Timer Active")
+            Text(localizationManager.sleepTimerTimerActive)
                 .dynamicTypeSupport(.title2, maxSize: .accessibility2)
                 .fontWeight(.medium)
                 .accessibilityAddTraits(.isHeader)
@@ -119,7 +119,7 @@ struct SleepTimerView: View {
                     .accessibilityAddTraits(.updatesFrequently)
                     .visualAccessibility()
                 
-                Text("remaining")
+                Text(localizationManager.sleepTimerRemaining)
                     .dynamicTypeSupport(.body, maxSize: .accessibility1)
                     .foregroundColor(.secondary)
                     .visualAccessibility(foreground: .secondary)
@@ -139,17 +139,21 @@ struct SleepTimerView: View {
     
     private var timerSelectionView: some View {
         VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-            Text("Choose Duration")
+            Text(localizationManager.sleepTimerChooseDuration)
                 .dynamicTypeSupport(.title2, maxSize: .accessibility2)
                 .fontWeight(.medium)
                 .accessibilityAddTraits(.isHeader)
                 .visualAccessibility()
             
-            LazyVGrid(columns: gridColumns, spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
-                ForEach(Array(presetDurations.enumerated()), id: \.offset) { index, preset in
-                    durationButton(title: preset.0, duration: preset.1, isCustom: preset.1 == -1)
+            ScrollView {
+                LazyVStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
+                    ForEach(Array(presetDurations.enumerated()), id: \.offset) { index, preset in
+                        durationButton(title: preset.0, duration: preset.1)
+                    }
                 }
+                .padding(.horizontal, AccessibleSpacing.standard(for: dynamicTypeSize))
             }
+            .frame(maxHeight: 300) // Limit height to make it scrollable
         }
     }
     
@@ -159,7 +163,7 @@ struct SleepTimerView: View {
         VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
             if accessibilityManager.sleepTimerActive {
                 Button(action: cancelTimer) {
-                    Text("Cancel Timer")
+                    Text(localizationManager.sleepTimerCancel)
                         .dynamicTypeSupport(.headline, maxSize: .accessibility1)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -167,14 +171,14 @@ struct SleepTimerView: View {
                         .background(Color.red)
                         .cornerRadius(12)
                 }
-                .accessibilityLabel("Cancel sleep timer")
-                .accessibilityHint("Stop the current sleep timer")
+                .accessibilityLabel(localizationManager.sleepTimerCancelLabel)
+                .accessibilityHint(localizationManager.sleepTimerCancelHint)
                 .accessibleTouchTarget()
                 .visualAccessibility(foreground: .white, background: .red)
                 
             } else {
                 Button(action: startTimer) {
-                    Text("Start Timer")
+                    Text(localizationManager.sleepTimerStart)
                         .dynamicTypeSupport(.headline, maxSize: .accessibility1)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -182,9 +186,9 @@ struct SleepTimerView: View {
                         .background(Color.accentColor)
                         .cornerRadius(12)
                 }
-                .accessibilityLabel("Start sleep timer")
-                .accessibilityHint("Start timer for \(TimeInterval(selectedDuration).accessibleDuration)")
-                .accessibilityValue("Selected duration: \(TimeInterval(selectedDuration).accessibleDuration)")
+                .accessibilityLabel(localizationManager.sleepTimerStartLabel)
+                .accessibilityHint(localizationManager.sleepTimerStartHint(TimeInterval(selectedDuration).accessibleDuration))
+                .accessibilityValue(localizationManager.sleepTimerStartValue(TimeInterval(selectedDuration).accessibleDuration))
                 .accessibleTouchTarget()
                 .disabled(selectedDuration <= 0)
                 .highContrastSupport(normal: .accentColor, highContrast: .primary)
@@ -194,30 +198,31 @@ struct SleepTimerView: View {
     
     // MARK: - Helper Views
     
-    private func durationButton(title: String, duration: TimeInterval, isCustom: Bool) -> some View {
+    private func durationButton(title: String, duration: TimeInterval) -> some View {
         Button(action: {
-            if isCustom {
-                isShowingCustomPicker = true
-            } else {
-                selectedDuration = duration
-                accessibilityManager.announceMessage("Selected \(title)")
-            }
+            selectedDuration = duration
+            accessibilityManager.announceMessage(localizationManager.sleepTimerSelected(title))
         }) {
-            Text(title)
-                .dynamicTypeSupport(.body, maxSize: .accessibility1, lineLimit: 2)
-                .multilineTextAlignment(.center)
-                .foregroundColor(isSelected(duration) ? .white : .primary)
-                .frame(maxWidth: .infinity)
-                .accessiblePadding(.vertical, dynamicTypeSize: dynamicTypeSize)
-                .background(
-                    isSelected(duration) ? 
-                        Color.accentColor : 
-                        Color(UIColor.systemGray5).opacity(accessibilityManager.isReduceTransparencyEnabled ? 1.0 : 0.8)
-                )
-                .cornerRadius(8)
+            HStack {
+                Text(title)
+                    .dynamicTypeSupport(.body, maxSize: .accessibility1, lineLimit: 1)
+                    .foregroundColor(isSelected(duration) ? .white : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                if isSelected(duration) {
+                    Image(systemName: "checkmark")
+                        .font(.body)
+                        .foregroundColor(.white)
+                }
+            }
+            .accessiblePadding(.all, dynamicTypeSize: dynamicTypeSize)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected(duration) ? Color.accentColor : Color(UIColor.systemGray5).opacity(accessibilityManager.isReduceTransparencyEnabled ? 1.0 : 0.8))
+            )
         }
-        .accessibilityLabel(isCustom ? "Custom duration" : title)
-        .accessibilityHint(isCustom ? "Double tap to set custom duration" : "Double tap to select \(title)")
+        .accessibilityLabel(title)
+        .accessibilityHint("Double tap to select \(title)")
         .accessibilityAddTraits(isSelected(duration) ? [.isButton, .isSelected] : .isButton)
         .accessibleTouchTarget()
         .highContrastSupport(
@@ -241,54 +246,7 @@ struct SleepTimerView: View {
         .highContrastSupport(normal: .accentColor, highContrast: .primary)
     }
     
-    private var customTimerPickerView: some View {
-        NavigationStack {
-            VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-                Text("Custom Duration")
-                    .dynamicTypeSupport(.title2, maxSize: .accessibility2)
-                    .fontWeight(.medium)
-                    .accessibilityAddTraits(.isHeader)
-                
-                Picker("Minutes", selection: $customMinutes) {
-                    ForEach(1...180, id: \.self) { minutes in
-                        Text("\(minutes) minute\(minutes == 1 ? "" : "s")")
-                            .tag(minutes)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .accessibilityLabel("Duration in minutes")
-                .accessibilityValue("\(customMinutes) minutes")
-                .accessibilityHint("Scroll to select custom duration")
-                
-                Button("Set Custom Timer") {
-                    selectedDuration = TimeInterval(customMinutes * 60)
-                    isShowingCustomPicker = false
-                    accessibilityManager.announceMessage("Custom timer set for \(customMinutes) minute\(customMinutes == 1 ? "" : "s")")
-                }
-                .dynamicTypeSupport(.headline, maxSize: .accessibility1)
-                .accessibleTouchTarget()
-                .visualAccessibility()
-            }
-            .accessiblePadding(dynamicTypeSize: dynamicTypeSize)
-            .navigationTitle("Custom Timer")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        isShowingCustomPicker = false
-                    }
-                    .accessibleTouchTarget()
-                }
-            }
-        }
-    }
-    
     // MARK: - Computed Properties
-    
-    private var gridColumns: [GridItem] {
-        let columnCount = dynamicTypeSize.isLargeSize ? 2 : 3
-        return Array(repeating: GridItem(.flexible(), spacing: AccessibleSpacing.standard(for: dynamicTypeSize)), count: columnCount)
-    }
     
     private var timeRemainingText: String {
         let remaining = Int(accessibilityManager.sleepTimerRemaining)
@@ -299,7 +257,7 @@ struct SleepTimerView: View {
     
     private var timeRemainingAccessibilityLabel: String {
         let remaining = accessibilityManager.sleepTimerRemaining
-        return "Time remaining: \(TimeInterval(remaining).accessibleDuration)"
+        return localizationManager.sleepTimerTimeRemaining(TimeInterval(remaining).accessibleDuration)
     }
     
     private var progressValue: Double {
@@ -308,10 +266,6 @@ struct SleepTimerView: View {
     }
     
     private func isSelected(_ duration: TimeInterval) -> Bool {
-        if duration == -1 {
-            // Custom option selected if selectedDuration is not in presets
-            return !presetDurations.contains { $0.1 == selectedDuration }
-        }
         return selectedDuration == duration
     }
     
@@ -331,4 +285,5 @@ struct SleepTimerView: View {
     SleepTimerView()
         .environmentObject(AccessibilityManager())
         .environmentObject(AudioPlayerService())
+        .environmentObject(LocalizationManager.shared)
 }

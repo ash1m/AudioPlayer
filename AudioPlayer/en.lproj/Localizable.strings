@@ -18,3 +18,39 @@
 
 "settings.version" = "Version";
 "settings.build" = "Build";
+
+// Import messages
+"import.results.title" = "Import Results";
+"import.success.single" = "Successfully imported 1 file!";
+"import.success.multiple" = "Successfully imported %d files!";
+"import.failure.all" = "Failed to import %d file(s). Tap 'View Details' for more information.";
+"import.partial.success" = "Imported %d file(s) successfully.\n%d file(s) failed to import. Tap 'View Details' for more information.";
+"import.button.ok" = "OK";
+"import.button.view.details" = "View Details";
+"import.button.done" = "Done";
+"import.progress.importing" = "Importing files...";
+"import.details.title" = "Import Results";
+"import.details.success.section" = "Successfully Imported (%d)";
+"import.details.failure.section" = "Failed to Import (%d)";
+
+// Sleep Timer
+"sleep.timer.title" = "Sleep Timer";
+"sleep.timer.description" = "Set a timer to automatically pause playback";
+"sleep.timer.choose.duration" = "Choose Duration";
+"sleep.timer.timer.active" = "Timer Active";
+"sleep.timer.remaining" = "remaining";
+"sleep.timer.start" = "Start Timer";
+"sleep.timer.cancel" = "Cancel Timer";
+"sleep.timer.done" = "Done";
+"sleep.timer.minutes.format" = "%d minutes";
+"sleep.timer.hour" = "1 hour";
+"sleep.timer.close.label" = "Close sleep timer";
+"sleep.timer.close.hint" = "Return to player";
+"sleep.timer.start.label" = "Start sleep timer";
+"sleep.timer.start.hint" = "Start timer for %@";
+"sleep.timer.start.value" = "Selected duration: %@";
+"sleep.timer.cancel.label" = "Cancel sleep timer";
+"sleep.timer.cancel.hint" = "Stop the current sleep timer";
+"sleep.timer.selected" = "Selected %@";
+"sleep.timer.running" = "Sleep timer is running";
+"sleep.timer.time.remaining" = "Time remaining: %@";

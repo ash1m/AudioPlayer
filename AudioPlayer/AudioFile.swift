@@ -91,4 +91,24 @@ extension AudioFile {
 
 extension AudioFile: Identifiable {
     
+    // Shared progress percentage calculation
+    func progressPercentage(currentlyPlaying: Bool, currentTime: Double) -> Double {
+        guard duration > 0 else { return 0 }
+        
+        // If this is the currently playing file, use the live current time
+        if currentlyPlaying {
+            return min(max(currentTime / duration, 0), 1)
+        } else {
+            // Use the saved position for non-playing files
+            return min(max(currentPosition / duration, 0), 1)
+        }
+    }
+    
+    // Shared file name without extension
+    var originalFileNameWithoutExtension: String {
+        if let dotIndex = fileName.lastIndex(of: ".") {
+            return String(fileName[..<dotIndex])
+        }
+        return fileName
+    }
 }

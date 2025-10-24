@@ -12,6 +12,7 @@ import CoreData
 struct ImportView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var audioFileManager: AudioFileManager
+    @EnvironmentObject var localizationManager: LocalizationManager
     
     @State private var isShowingDocumentPicker = false
     @State private var isShowingAlert = false
@@ -63,7 +64,7 @@ struct ImportView: View {
                     HStack(spacing: 12) {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text("Importing files...")
+                        Text(localizationManager.importProgressImporting)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -95,10 +96,10 @@ struct ImportView: View {
                     importAudioFiles(urls: urls)
                 }
             }
-            .alert("Import Results", isPresented: $isShowingAlert) {
-                Button("OK") { }
+            .alert(localizationManager.importResultsTitle, isPresented: $isShowingAlert) {
+                Button(localizationManager.importButtonOK) { }
                 if importResults.contains(where: { !$0.success }) {
-                    Button("View Details") {
+                    Button(localizationManager.importButtonViewDetails) {
                         isShowingDetailedResults = true
                     }
                 }
@@ -127,14 +128,14 @@ struct ImportView: View {
                 
                 if failureCount == 0 {
                     if totalProcessed == 1 {
-                        alertMessage = "Successfully imported 1 file!"
+                        alertMessage = localizationManager.importSuccessSingle
                     } else {
-                        alertMessage = "Successfully imported \(successCount) files!"
+                        alertMessage = localizationManager.importSuccessMultiple(successCount)
                     }
                 } else if successCount == 0 {
-                    alertMessage = "Failed to import \(failureCount) file(s). Tap 'View Details' for more information."
+                    alertMessage = localizationManager.importFailureAll(failureCount)
                 } else {
-                    alertMessage = "Imported \(successCount) file(s) successfully.\n\(failureCount) file(s) failed to import. Tap 'View Details' for more information."
+                    alertMessage = localizationManager.importPartialSuccessDetailed(successCount, failureCount)
                 }
                 
                 isShowingAlert = true
@@ -182,6 +183,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
 struct ImportResultsDetailView: View {
     let results: [AudioFileManager.ImportResult]
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var localizationManager: LocalizationManager
     
     var body: some View {
         NavigationStack {
@@ -190,7 +192,7 @@ struct ImportResultsDetailView: View {
                 let failureResults = results.filter { !$0.success }
                 
                 if !successResults.isEmpty {
-                    Section("Successfully Imported (\(successResults.count))") {
+                    Section(localizationManager.importDetailsSuccessSection(successResults.count)) {
                         ForEach(successResults, id: \.url) { result in
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
@@ -204,7 +206,7 @@ struct ImportResultsDetailView: View {
                 }
                 
                 if !failureResults.isEmpty {
-                    Section("Failed to Import (\(failureResults.count))") {
+                    Section(localizationManager.importDetailsFailureSection(failureResults.count)) {
                         ForEach(failureResults, id: \.url) { result in
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
@@ -228,11 +230,11 @@ struct ImportResultsDetailView: View {
                     }
                 }
             }
-            .navigationTitle("Import Results")
+            .navigationTitle(localizationManager.importDetailsTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(localizationManager.importButtonDone) {
                         dismiss()
                     }
                 }

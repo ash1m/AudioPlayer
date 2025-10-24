@@ -10,6 +10,7 @@ import AVFoundation
 import MediaPlayer
 import CoreData
 import Combine
+import UIKit
 
 class AudioPlayerService: NSObject, ObservableObject {
     
@@ -26,6 +27,8 @@ class AudioPlayerService: NSObject, ObservableObject {
     private var audioPlayer: AVAudioPlayer?
     private var updateTimer: Timer?
     private var viewContext: NSManagedObjectContext?
+    private var isInBackground = false
+    private var lastUpdateTime: CFTimeInterval = 0
     
     // MARK: - Playlist Queue Properties
     private var currentPlaylist: Playlist?
@@ -57,10 +60,41 @@ class AudioPlayerService: NSObject, ObservableObject {
             name: .sleepTimerExpired,
             object: nil
         )
+        
+        // Background/foreground notifications for performance optimization
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
     }
     
     @objc private func handleSleepTimerExpired() {
         pause()
+    }
+    
+    @objc private func appDidEnterBackground() {
+        isInBackground = true
+        // Reduce update frequency in background for better battery life
+        if isPlaying {
+            startUpdateTimer()
+        }
+    }
+    
+    @objc private func appWillEnterForeground() {
+        isInBackground = false
+        // Resume normal update frequency when returning to foreground
+        if isPlaying {
+            startUpdateTimer()
+        }
     }
     
     // MARK: - Audio Session Setup
@@ -226,7 +260,11 @@ class AudioPlayerService: NSObject, ObservableObject {
     
     private func startUpdateTimer() {
         stopUpdateTimer()
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        
+        // Much more conservative timer frequency to reduce CPU usage
+        let timerInterval: TimeInterval = isInBackground ? 5.0 : 1.0 // 1Hz foreground, 0.2Hz background
+        
+        updateTimer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] _ in
             self?.updateCurrentTime()
         }
     }
@@ -237,8 +275,16 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     private func updateCurrentTime() {
-        guard let player = audioPlayer else { return }
-        currentTime = player.currentTime
+        guard let player = audioPlayer, isPlaying else { return }
+        
+        let newTime = player.currentTime
+        
+        // Only update if time changed significantly to prevent unnecessary view updates
+        if abs(newTime - currentTime) > 0.5 { // Increased threshold to 0.5 seconds
+            DispatchQueue.main.async { [weak self] in
+                self?.currentTime = newTime
+            }
+        }
     }
     
     // MARK: - Core Data Operations

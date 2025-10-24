@@ -112,14 +112,39 @@ class LocalizationManager: ObservableObject {
     // MARK: - Sleep Timer
     
     var sleepTimerTitle: String { localizedString("sleep.timer.title") }
-    var sleepTimerOff: String { localizedString("sleep.timer.off") }
-    var sleepTimerHour: String { localizedString("sleep.timer.hour") }
-    var sleepTimerCustom: String { localizedString("sleep.timer.custom") }
+    var sleepTimerDescription: String { localizedString("sleep.timer.description") }
+    var sleepTimerChooseDuration: String { localizedString("sleep.timer.choose.duration") }
+    var sleepTimerTimerActive: String { localizedString("sleep.timer.timer.active") }
+    var sleepTimerRemaining: String { localizedString("sleep.timer.remaining") }
+    var sleepTimerStart: String { localizedString("sleep.timer.start") }
     var sleepTimerCancel: String { localizedString("sleep.timer.cancel") }
-    var sleepTimerSet: String { localizedString("sleep.timer.set") }
+    var sleepTimerDone: String { localizedString("sleep.timer.done") }
+    var sleepTimerHour: String { localizedString("sleep.timer.hour") }
+    var sleepTimerCloseLabel: String { localizedString("sleep.timer.close.label") }
+    var sleepTimerCloseHint: String { localizedString("sleep.timer.close.hint") }
+    var sleepTimerStartLabel: String { localizedString("sleep.timer.start.label") }
+    var sleepTimerCancelLabel: String { localizedString("sleep.timer.cancel.label") }
+    var sleepTimerCancelHint: String { localizedString("sleep.timer.cancel.hint") }
+    var sleepTimerRunning: String { localizedString("sleep.timer.running") }
     
-    func sleepTimerMinutes(_ minutes: Int) -> String {
-        localizedString("sleep.timer.minutes", minutes)
+    func sleepTimerMinutesFormat(_ minutes: Int) -> String {
+        localizedString("sleep.timer.minutes.format", minutes)
+    }
+    
+    func sleepTimerStartHint(_ duration: String) -> String {
+        localizedString("sleep.timer.start.hint", duration)
+    }
+    
+    func sleepTimerStartValue(_ duration: String) -> String {
+        localizedString("sleep.timer.start.value", duration)
+    }
+    
+    func sleepTimerSelected(_ duration: String) -> String {
+        localizedString("sleep.timer.selected", duration)
+    }
+    
+    func sleepTimerTimeRemaining(_ time: String) -> String {
+        localizedString("sleep.timer.time.remaining", time)
     }
     
     // MARK: - Settings
@@ -271,6 +296,36 @@ class LocalizationManager: ObservableObject {
     
     func importPartialSuccess(_ imported: Int, _ total: Int) -> String {
         localizedString("import.partial.success", imported, total)
+    }
+    
+    // MARK: - Import Results
+    
+    var importResultsTitle: String { localizedString("import.results.title") }
+    var importSuccessSingle: String { localizedString("import.success.single") }
+    var importProgressImporting: String { localizedString("import.progress.importing") }
+    var importDetailsTitle: String { localizedString("import.details.title") }
+    var importButtonOK: String { localizedString("import.button.ok") }
+    var importButtonViewDetails: String { localizedString("import.button.view.details") }
+    var importButtonDone: String { localizedString("import.button.done") }
+    
+    func importSuccessMultiple(_ count: Int) -> String {
+        localizedString("import.success.multiple", count)
+    }
+    
+    func importFailureAll(_ count: Int) -> String {
+        localizedString("import.failure.all", count)
+    }
+    
+    func importPartialSuccessDetailed(_ successCount: Int, _ failureCount: Int) -> String {
+        localizedString("import.partial.success", successCount, failureCount)
+    }
+    
+    func importDetailsSuccessSection(_ count: Int) -> String {
+        localizedString("import.details.success.section", count)
+    }
+    
+    func importDetailsFailureSection(_ count: Int) -> String {
+        localizedString("import.details.failure.section", count)
     }
     
     // MARK: - Common Actions

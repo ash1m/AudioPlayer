@@ -74,6 +74,7 @@ struct ContentView: View {
         .environmentObject(settingsManager)
         .environmentObject(playlistManager)
         .environmentObject(accessibilityManager)
+        .environmentObject(localizationManager)
         .environment(\.managedObjectContext, viewContext)
         .accentColor(accessibilityManager.highContrastColor(base: .blue, highContrast: .primary))
         .visualAccessibility(reducedMotion: true)
@@ -91,4 +92,5 @@ struct ContentView: View {
         .environmentObject(AudioFileManager())
         .environmentObject(SettingsManager())
         .environmentObject(AccessibilityManager())
+        .environmentObject(LocalizationManager.shared)
 }

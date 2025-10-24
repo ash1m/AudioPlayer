@@ -13,20 +13,6 @@ import UIKit
 enum LibraryViewMode: CaseIterable {
     case grid
     case list
-    
-    var icon: String {
-        switch self {
-        case .grid: return "square.grid.2x2"
-        case .list: return "list.bullet"
-        }
-    }
-    
-    var accessibilityLabel: String {
-        switch self {
-        case .grid: return "Grid view"
-        case .list: return "List view"
-        }
-    }
 }
 
 enum SortOption: String, CaseIterable {
@@ -43,6 +29,7 @@ struct LibraryGridView: View {
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var audioFileManager: AudioFileManager
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var localizationManager: LocalizationManager
     
     let navigateToPlayer: () -> Void
     let navigateToSettings: () -> Void
@@ -60,7 +47,10 @@ struct LibraryGridView: View {
     @State private var isShowingDetailedResults = false
     @State private var viewMode: LibraryViewMode = .grid
     @State private var sortOption: SortOption = .fileName
-    @State private var isShowingSortMenu = false
+    
+    // Performance optimization - reduce view rebuilds
+    @State private var lastContentRefresh: CFTimeInterval = 0
+    @State private var isContentLoading = false
     
     private var gridColumns: [GridItem] {
         let spacing = AccessibleSpacing.standard(for: dynamicTypeSize)
@@ -88,231 +78,23 @@ struct LibraryGridView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Status bar space
-            Color.clear
-                .frame(height: 44)
-            
-            // iOS-style header
-            VStack(spacing: 0) {
-                HStack {
-                    // Library title on the left
-                    Text("Library")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    // Right side buttons
-                    HStack(spacing: 16) {
-                        // Add files/folder button
-                        Button(action: {
-                            isShowingDocumentPicker = true
-                        }) {
-                            if isImporting {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .frame(width: 30, height: 30)
-                            } else {
-                                Image(systemName: "plus")
-                                    .font(.title2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.primary)
-                                    .frame(width: 30, height: 30)
-                                    .background(
-                                        Circle()
-                                            .fill(Color(.systemGray5))
-                                    )
-                            }
-                        }
-                        .accessibilityLabel(isImporting ? "Importing files" : "Add files")
-                        .disabled(isImporting)
-                        
-                        // Settings button
-                        Button(action: {
-                            navigateToSettings()
-                        }) {
-                            Image(systemName: "gearshape")
-                                .font(.title2)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                                .frame(width: 30, height: 30)
-                                .background(
-                                    Circle()
-                                        .fill(Color(.systemGray5))
-                                )
-                        }
-                        .accessibilityLabel("Settings")
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                
-                // Sort By section
-                HStack {
-                    Menu {
-                        ForEach(SortOption.allCases, id: \.rawValue) { option in
-                            Button(action: {
-                                sortOption = option
-                                loadCurrentContent() // Reload with new sort
-                            }) {
-                                HStack {
-                                    Text(option.rawValue)
-                                    if sortOption == option {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("Sort By")
-                                .font(.body)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue)
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    
-                    Spacer()
-                    
-                    // Hidden view mode toggle (kept for future use)
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewMode = viewMode == .grid ? .list : .grid
-                        }
-                    }) {
-                        Image(systemName: viewMode == .grid ? "list.bullet" : "square.grid.2x2")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                    }
-                    .accessibilityLabel(viewMode == .grid ? "Switch to list view" : "Switch to grid view")
-                    .hidden() // Hide the toggle as requested
-                    .padding(.horizontal, 16)
-                }
-                .padding(.bottom, 8)
-            }
-            .background(Color(.systemBackground))
-            
-            // Breadcrumb navigation
-            if folderNavigationManager.canNavigateBack {
-                BreadcrumbNavigation(folderNavigationManager: folderNavigationManager)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-            }
-            
-            // Main content
-            if folders.isEmpty && audioFiles.isEmpty {
-                ContentUnavailableView(
-                    folderNavigationManager.isInFolder ? "Empty Folder" : "No Content",
-                    systemImage: folderNavigationManager.isInFolder ? "folder" : "music.note.list",
-                    description: Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Tap the + button to import audio files or folders")
-                )
-                .accessibilityLabel(folderNavigationManager.isInFolder ? "Folder is empty" : "Library is empty")
-                .accessibilityHint("Import audio files using the add button")
-                .dynamicContentFocus(
-                    description: "Library content", 
-                    hasContent: false, 
-                    emptyMessage: folderNavigationManager.isInFolder ? "No content in this folder" : "No audio files in library. Use the import button to add files."
-                )
-            } else {
-                ScrollView {
-                    if viewMode == .grid {
-                        LazyVGrid(columns: gridColumns, spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-                            // Show folders first
-                            ForEach(folders, id: \.self) { folder in
-                                FolderGridCard(
-                                    folder: folder,
-                                    artworkSize: artworkSize,
-                                    action: { }, // Empty action - playlist functionality handled internally
-                                    onDelete: { folder in
-                                        folderNavigationManager.deleteFolder(folder, context: viewContext)
-                                        refreshContent()
-                                    }
-                                )
-                            }
-                            
-                            // Then show audio files
-                            ForEach(audioFiles, id: \.self) { audioFile in
-                                AudioFileGridCard(
-                                    audioFile: audioFile,
-                                    artworkSize: artworkSize,
-                                    action: { handleAudioFileSelection(audioFile) },
-                                    onDelete: deleteAudioFile,
-                                    onMarkAsPlayed: markAsPlayed,
-                                    onResetProgress: resetProgress,
-                                    onShare: shareAudioFile
-                                )
-                            }
-                        }
-                        .animation(.none, value: audioFiles.count) // Prevent layout animations on async content changes
-                        .animation(.none, value: folders.count)
-                        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
-                        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
-                    } else {
-                        LazyVStack(spacing: 0) {
-                            // Show folders first in list mode
-                            ForEach(folders, id: \.self) { folder in
-                                VStack(spacing: 0) {
-                                    FolderListCard(
-                                        folder: folder,
-                                        action: { }, // Empty action - playlist functionality handled internally
-                                        onDelete: { folder in
-                                            folderNavigationManager.deleteFolder(folder, context: viewContext)
-                                            refreshContent()
-                                        }
-                                    )
-                                    
-                                    if folder != folders.last || !audioFiles.isEmpty {
-                                        Divider()
-                                            .padding(.leading, 76)
-                                    }
-                                }
-                            }
-                            
-                            // Then show audio files
-                            ForEach(audioFiles, id: \.self) { audioFile in
-                                VStack(spacing: 0) {
-                                    AudioFileListCard(
-                                        audioFile: audioFile,
-                                        action: { handleAudioFileSelection(audioFile) },
-                                        onDelete: deleteAudioFile,
-                                        onMarkAsPlayed: markAsPlayed,
-                                        onResetProgress: resetProgress,
-                                        onShare: shareAudioFile
-                                    )
-                                    
-                                    if audioFile != audioFiles.last {
-                                        Divider()
-                                            .padding(.leading, 76)
-                                    }
-                                }
-                            }
-                        }
-                        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
-                        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
-                    }
-                }
-            }
+            headerView
+            breadcrumbView
+            contentView
         }
         .accessibilityLabel(libraryAccessibilityLabel)
         .dynamicContentFocus(
-            description: folderNavigationManager.currentLocationDescription, 
-            hasContent: !folders.isEmpty || !audioFiles.isEmpty, 
+            description: folderNavigationManager.currentLocationDescription,
+            hasContent: !folders.isEmpty || !audioFiles.isEmpty,
             emptyMessage: folderNavigationManager.isInFolder ? "No content in this folder" : "No audio files in library"
         )
         .onAppear {
             loadCurrentContent()
         }
-        .onChange(of: folderNavigationManager.currentFolder) { _ in
+        .onChange(of: folderNavigationManager.currentFolder) { _, _ in
             loadCurrentContent()
         }
-        .onChange(of: refreshTrigger) { _ in
+        .onChange(of: refreshTrigger) { _, _ in
             loadCurrentContent()
         }
         .sheet(isPresented: $isShowingDocumentPicker) {
@@ -328,10 +110,10 @@ struct LibraryGridView: View {
             }
             .modalFocus(title: "File picker", isPresented: isShowingDocumentPicker)
         }
-        .alert("Import Results", isPresented: $isShowingAlert) {
-            Button("OK") { }
+        .alert(localizationManager.importResultsTitle, isPresented: $isShowingAlert) {
+            Button(localizationManager.importButtonOK) { }
             if importResults.contains(where: { !$0.success }) {
-                Button("View Details") {
+                Button(localizationManager.importButtonViewDetails) {
                     isShowingDetailedResults = true
                 }
             }
@@ -342,7 +124,6 @@ struct LibraryGridView: View {
             ImportResultsDetailView(results: importResults)
         }
     }
-    
     
     private func handleAudioFileSelection(_ audioFile: AudioFile) {
         // Check if this is the currently playing file
@@ -449,7 +230,9 @@ struct LibraryGridView: View {
     }
     
     private func importAudioFiles(urls: [URL]) {
-        isImporting = true
+        Task { @MainActor in
+            isImporting = true
+        }
         
         Task {
             let results = await audioFileManager.importAudioFiles(urls: urls, context: viewContext)
@@ -464,14 +247,14 @@ struct LibraryGridView: View {
                 
                 if failureCount == 0 {
                     if totalProcessed == 1 {
-                        alertMessage = "Successfully imported 1 file!"
+                        alertMessage = localizationManager.importSuccessSingle
                     } else {
-                        alertMessage = "Successfully imported \(successCount) files!"
+                        alertMessage = localizationManager.importSuccessMultiple(successCount)
                     }
                 } else if successCount == 0 {
-                    alertMessage = "Failed to import \(failureCount) file(s). Tap 'View Details' for more information."
+                    alertMessage = localizationManager.importFailureAll(failureCount)
                 } else {
-                    alertMessage = "Imported \(successCount) file(s) successfully.\n\(failureCount) file(s) failed to import. Tap 'View Details' for more information."
+                    alertMessage = localizationManager.importPartialSuccessDetailed(successCount, failureCount)
                 }
                 
                 isShowingAlert = true
@@ -488,9 +271,237 @@ struct LibraryGridView: View {
         }
     }
     
+    // MARK: - UI Components
+    
+    private var headerView: some View {
+        VStack(spacing: 0) {
+            // Status bar space
+            Color.clear
+                .frame(height: 44)
+            
+            // iOS-style header
+            VStack(spacing: 0) {
+                HStack {
+                    // Library title on the left
+                    Text("Library")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    // Right side buttons
+                    HStack(spacing: 20) {
+                        Button("Add") {
+                            isShowingDocumentPicker = true
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Add audio files")
+                        .accessibilityHint("Opens file picker to import audio files or folders")
+                        
+                        Button("Settings") {
+                            navigateToSettings()
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Settings")
+                        .accessibilityHint("Opens app settings and preferences")
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+                
+                // Sort By section
+                HStack {
+                    sortByMenu
+                        .padding(.horizontal, 16)
+                    
+                    Spacer()
+                }
+                .padding(.bottom, 8)
+            }
+            .background(Color(.systemBackground))
+        }
+    }
+    
+    @ViewBuilder
+    private var breadcrumbView: some View {
+        if folderNavigationManager.canNavigateBack {
+            BreadcrumbNavigation(folderNavigationManager: folderNavigationManager)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if folders.isEmpty && audioFiles.isEmpty {
+            emptyStateView
+        } else {
+            mainContentView
+        }
+    }
+    
+    private var emptyStateView: some View {
+        ContentUnavailableView(
+            folderNavigationManager.isInFolder ? "Empty Folder" : "No Content",
+            systemImage: folderNavigationManager.isInFolder ? "folder" : "music.note.list",
+            description: Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Tap the + button to import audio files or folders")
+        )
+        .accessibilityLabel(folderNavigationManager.isInFolder ? "Folder is empty" : "Library is empty")
+        .accessibilityHint("Import audio files using the add button")
+        .dynamicContentFocus(
+            description: "Library content",
+            hasContent: false,
+            emptyMessage: folderNavigationManager.isInFolder ? "No content in this folder" : "No audio files in library. Use the import button to add files."
+        )
+    }
+    
+    private var mainContentView: some View {
+        ScrollView {
+            if viewMode == .grid {
+                gridContentView
+            } else {
+                listContentView
+            }
+        }
+    }
+    
+    private var gridContentView: some View {
+        LazyVGrid(columns: gridColumns, spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
+            // Show folders first
+            ForEach(folders, id: \.self) { folder in
+                FolderGridCard(
+                    folder: folder,
+                    artworkSize: artworkSize,
+                    action: { }, // Empty action - playlist functionality handled internally
+                    onDelete: { folder in
+                        folderNavigationManager.deleteFolder(folder, context: viewContext)
+                        refreshContent()
+                    }
+                )
+            }
+            
+            // Then show audio files
+            ForEach(audioFiles, id: \.self) { audioFile in
+                AudioFileGridCard(
+                    audioFile: audioFile,
+                    artworkSize: artworkSize,
+                    action: { handleAudioFileSelection(audioFile) },
+                    onDelete: deleteAudioFile,
+                    onMarkAsPlayed: markAsPlayed,
+                    onResetProgress: resetProgress,
+                    onShare: shareAudioFile
+                )
+            }
+        }
+        .animation(.none, value: audioFiles.count) // Prevent layout animations on async content changes
+        .animation(.none, value: folders.count)
+        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
+        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
+    }
+    
+    private var listContentView: some View {
+        LazyVStack(spacing: 0) {
+            // Show folders first in list mode
+            ForEach(folders, id: \.self) { folder in
+                VStack(spacing: 0) {
+                    FolderListCard(
+                        folder: folder,
+                        action: { }, // Empty action - playlist functionality handled internally
+                        onDelete: { folder in
+                            folderNavigationManager.deleteFolder(folder, context: viewContext)
+                            refreshContent()
+                        }
+                    )
+                    
+                    if folder != folders.last || !audioFiles.isEmpty {
+                        Divider()
+                            .padding(.leading, 76)
+                    }
+                }
+            }
+            
+            // Then show audio files
+            ForEach(audioFiles, id: \.self) { audioFile in
+                VStack(spacing: 0) {
+                    AudioFileListCard(
+                        audioFile: audioFile,
+                        action: { handleAudioFileSelection(audioFile) },
+                        onDelete: deleteAudioFile,
+                        onMarkAsPlayed: markAsPlayed,
+                        onResetProgress: resetProgress,
+                        onShare: shareAudioFile
+                    )
+                    
+                    if audioFile != audioFiles.last {
+                        Divider()
+                            .padding(.leading, 76)
+                    }
+                }
+            }
+        }
+        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
+        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
+    }
+    
+    private var sortByMenu: some View {
+        Menu {
+            ForEach(SortOption.allCases, id: \.rawValue) { option in
+                Button(action: {
+                    changeSortOption(to: option)
+                }) {
+                    HStack {
+                        Text(option.rawValue)
+                        if sortOption.rawValue == option.rawValue {
+                            Image(systemName: "checkmark")
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+                .accessibilityLabel("Sort by \(option.rawValue.lowercased())")
+                .accessibilityHint("Changes library sort order")
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text("Sort By")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+                Image(systemName: "chevron.down")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+    
     // MARK: - Content Management Methods
     
+    private func changeSortOption(to option: SortOption) {
+        sortOption = option
+        loadCurrentContent()
+    }
+    
     private func loadCurrentContent() {
+        // Throttle content loading to prevent excessive UI updates
+        let now = CACurrentMediaTime()
+        if now - lastContentRefresh < 0.5 || isContentLoading {
+            return
+        }
+        
+        // Ensure we're on the main thread for UI updates
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async {
+                self.loadCurrentContent()
+            }
+            return
+        }
+        
+        isContentLoading = true
+        lastContentRefresh = now
+        
         folders = folderNavigationManager.getFolders(context: viewContext)
         var unsortedAudioFiles = folderNavigationManager.getAudioFiles(context: viewContext)
         
@@ -519,6 +530,11 @@ struct LibraryGridView: View {
         }
         
         audioFiles = unsortedAudioFiles
+        
+        // Reset loading flag asynchronously to prevent rapid successive calls
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            isContentLoading = false
+        }
     }
     
     private func refreshContent() {
@@ -582,6 +598,7 @@ struct AudioFileGridCard: View {
     let onResetProgress: (AudioFile) -> Void
     let onShare: (AudioFile) -> Void
     
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
@@ -615,7 +632,8 @@ struct AudioFileGridCard: View {
                                 return AnyView(Image(systemName: "music.note")
                                     .font(.system(size: artworkSize * 0.4))
                                     .foregroundColor(.white)
-                                    .frame(width: artworkSize, height: artworkSize))
+                                    .frame(width: artworkSize, height: artworkSize)
+                                    .accessibilityHidden(true))
                             case .empty:
                                 return AnyView(ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -628,6 +646,7 @@ struct AudioFileGridCard: View {
                             .font(.system(size: artworkSize * 0.4))
                             .foregroundColor(.white)
                             .frame(width: artworkSize, height: artworkSize)
+                            .accessibilityHidden(true)
                     }
                     
                     // Play/Pause indicator overlay
@@ -640,6 +659,8 @@ struct AudioFileGridCard: View {
                                     .foregroundColor(.white)
                                     .background(Circle().fill(.black.opacity(0.8)))
                                     .padding(8)
+                                    .accessibilityLabel(audioPlayerService.isPlaying ? "Currently playing" : "Currently paused")
+                                    .accessibilityHidden(true)
                             }
                             Spacer()
                         }
@@ -684,7 +705,7 @@ struct AudioFileGridCard: View {
                 
                 // Text content area with improved typography
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(originalFileNameWithoutExtension)
+                    Text(audioFile.originalFileNameWithoutExtension)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
@@ -721,12 +742,16 @@ struct AudioFileGridCard: View {
             }) {
                 Label("Mark as Played", systemImage: "checkmark.circle")
             }
+            .accessibilityLabel("Mark as played")
+            .accessibilityHint("Sets playback progress to complete")
             
             Button(action: {
                 onResetProgress(audioFile)
             }) {
                 Label("Reset Progress", systemImage: "arrow.counterclockwise")
             }
+            .accessibilityLabel("Reset progress")
+            .accessibilityHint("Resets playback to the beginning")
             
             Divider()
             
@@ -736,6 +761,8 @@ struct AudioFileGridCard: View {
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
+            .accessibilityLabel("Share audio file")
+            .accessibilityHint("Opens share sheet to send this file to other apps")
             
             Divider()
             
@@ -745,6 +772,8 @@ struct AudioFileGridCard: View {
             }) {
                 Label("Delete", systemImage: "trash")
             }
+            .accessibilityLabel("Delete audio file")
+            .accessibilityHint("Permanently removes this file from your library")
         }
         .accessibilityLabel(audioAccessibilityLabel)
         .accessibilityHint(audioAccessibilityHint)
@@ -756,25 +785,18 @@ struct AudioFileGridCard: View {
     
     // MARK: - Computed Properties
     
-    private var originalFileNameWithoutExtension: String {
-        let fileName = audioFile.fileName
-        if let dotIndex = fileName.lastIndex(of: ".") {
-            return String(fileName[..<dotIndex])
-        }
-        return fileName
-    }
     
     private var progressPercentage: Double {
-        guard audioFile.duration > 0 else { return 0 }
-        
-        // If this is the currently playing file, use the live current time
-        if audioPlayerService.currentAudioFile == audioFile {
-            return min(max(audioPlayerService.currentTime / audioFile.duration, 0), 1)
-        } else {
-            // Use the saved position for non-playing files
-            return min(max(audioFile.currentPosition / audioFile.duration, 0), 1)
+        // Only calculate progress for currently playing file to reduce CPU usage
+        guard audioPlayerService.currentAudioFile == audioFile else {
+            // For non-playing files, just use stored position
+            return audioFile.duration > 0 ? audioFile.currentPosition / audioFile.duration : 0
         }
+        
+        // For currently playing file, use real-time progress
+        return audioFile.duration > 0 ? audioPlayerService.currentTime / audioFile.duration : 0
     }
+    
     
     // MARK: - Computed Properties for Accessibility
     
@@ -847,7 +869,8 @@ struct AudioFileListCard: View {
                                     let _ = print("🎨 LocalAsyncImage (list) failed to load artwork for \(audioFile.title ?? "Unknown"): \(error)")
                                     return AnyView(Image(systemName: "music.note")
                                         .font(.title2)
-                                        .foregroundColor(.white))
+                                        .foregroundColor(.white)
+                                        .accessibilityHidden(true))
                                 case .empty:
                                     return AnyView(ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -858,6 +881,7 @@ struct AudioFileListCard: View {
                             Image(systemName: "music.note")
                                 .font(.title2)
                                 .foregroundColor(.white)
+                                .accessibilityHidden(true)
                         }
                         
                         // Play/Pause indicator for currently playing file
@@ -869,6 +893,8 @@ struct AudioFileListCard: View {
                                         .font(.caption)
                                         .foregroundColor(.white)
                                         .background(Circle().fill(.black.opacity(0.7)).frame(width: 16, height: 16))
+                                        .accessibilityLabel(audioPlayerService.isPlaying ? "Currently playing" : "Currently paused")
+                                        .accessibilityHidden(true)
                                 }
                                 Spacer()
                             }
@@ -897,7 +923,7 @@ struct AudioFileListCard: View {
                 
                 // Title and metadata column
                 VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                    Text(originalFileNameWithoutExtension)
+                    Text(audioFile.originalFileNameWithoutExtension)
                         .dynamicTypeSupport(.headline, maxSize: .accessibility2, lineLimit: 1, allowsTightening: true)
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -946,12 +972,16 @@ struct AudioFileListCard: View {
             }) {
                 Label("Mark as Played", systemImage: "checkmark.circle")
             }
+            .accessibilityLabel("Mark as played")
+            .accessibilityHint("Sets playback progress to complete")
             
             Button(action: {
                 onResetProgress(audioFile)
             }) {
                 Label("Reset Progress", systemImage: "arrow.counterclockwise")
             }
+            .accessibilityLabel("Reset progress")
+            .accessibilityHint("Resets playback to the beginning")
             
             Divider()
             
@@ -961,6 +991,8 @@ struct AudioFileListCard: View {
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
+            .accessibilityLabel("Share audio file")
+            .accessibilityHint("Opens share sheet to send this file to other apps")
             
             Divider()
             
@@ -970,6 +1002,8 @@ struct AudioFileListCard: View {
             }) {
                 Label("Delete", systemImage: "trash")
             }
+            .accessibilityLabel("Delete audio file")
+            .accessibilityHint("Permanently removes this file from your library")
         }
         .accessibilityLabel(audioAccessibilityLabel)
         .accessibilityHint(audioAccessibilityHint)
@@ -981,24 +1015,16 @@ struct AudioFileListCard: View {
     
     // MARK: - Computed Properties
     
-    private var originalFileNameWithoutExtension: String {
-        let fileName = audioFile.fileName
-        if let dotIndex = fileName.lastIndex(of: ".") {
-            return String(fileName[..<dotIndex])
-        }
-        return fileName
-    }
     
     private var progressPercentage: Double {
-        guard audioFile.duration > 0 else { return 0 }
-        
-        // If this is the currently playing file, use the live current time
-        if audioPlayerService.currentAudioFile == audioFile {
-            return min(max(audioPlayerService.currentTime / audioFile.duration, 0), 1)
-        } else {
-            // Use the saved position for non-playing files
-            return min(max(audioFile.currentPosition / audioFile.duration, 0), 1)
+        // Only calculate progress for currently playing file to reduce CPU usage
+        guard audioPlayerService.currentAudioFile == audioFile else {
+            // For non-playing files, just use stored position
+            return audioFile.duration > 0 ? audioFile.currentPosition / audioFile.duration : 0
         }
+        
+        // For currently playing file, use real-time progress
+        return audioFile.duration > 0 ? audioPlayerService.currentTime / audioFile.duration : 0
     }
     
     // MARK: - Computed Properties for Accessibility
@@ -1038,5 +1064,6 @@ struct AudioFileListCard: View {
     .environmentObject(AudioPlayerService())
     .environmentObject(AudioFileManager())
     .environmentObject(AccessibilityManager())
+    .environmentObject(LocalizationManager.shared)
 }
 
