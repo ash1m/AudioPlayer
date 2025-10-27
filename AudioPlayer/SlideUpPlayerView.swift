@@ -73,6 +73,9 @@ struct SlideUpPlayerView: View {
         .onChange(of: audioPlayerService.currentTime) {
             throttleUIUpdates()
         }
+        .onChange(of: audioPlayerService.folderCurrentTime) {
+            throttleUIUpdates()
+        }
         .onChange(of: audioPlayerService.isPlaying) {
             updateCachedLabels()
         }
@@ -285,19 +288,19 @@ struct SlideUpPlayerView: View {
     
     private var playbackControlsGroup: some View {
         VStack(spacing: 0) {
-            // Timestamps
+            // Timestamps (folder-aware)
             HStack {
-                Text(formatTime(audioPlayerService.currentTime))
+                Text(formatTime(displayCurrentTime))
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white)
-                    .accessibilityLabel("Current time \(formatTimeForAccessibility(audioPlayerService.currentTime))")
+                    .accessibilityLabel("Current time \(formatTimeForAccessibility(displayCurrentTime))")
                 
                 Spacer()
                 
-                Text(formatTime(audioPlayerService.duration))
+                Text(formatTime(displayTotalDuration))
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white)
-                    .accessibilityLabel("Total duration \(formatTimeForAccessibility(audioPlayerService.duration))")
+                    .accessibilityLabel("Total duration \(formatTimeForAccessibility(displayTotalDuration))")
             }
             .frame(maxWidth: 313)
             
@@ -397,22 +400,24 @@ struct SlideUpPlayerView: View {
     }
     
     private var miniPlayerAccessibilityValue: String {
-        guard audioPlayerService.duration > 0 else {
+        guard displayTotalDuration > 0 else {
             return "No duration information"
         }
         
-        let remaining = audioPlayerService.duration - audioPlayerService.currentTime
+        let remaining = displayTotalDuration - displayCurrentTime
         let remainingFormatted = formatTimeForAccessibility(remaining)
-        let currentFormatted = formatTimeForAccessibility(audioPlayerService.currentTime)
-        let durationFormatted = formatTimeForAccessibility(audioPlayerService.duration)
+        let currentFormatted = formatTimeForAccessibility(displayCurrentTime)
+        let durationFormatted = formatTimeForAccessibility(displayTotalDuration)
         
-        return "\(currentFormatted) of \(durationFormatted), \(remainingFormatted) remaining"
+        let context = audioPlayerService.isPlayingFromFolder ? " in folder" : ""
+        return "\(currentFormatted) of \(durationFormatted)\(context), \(remainingFormatted) remaining"
     }
     
     private var timelineAccessibilityValue: String {
-        let currentFormatted = formatTimeForAccessibility(audioPlayerService.currentTime)
-        let durationFormatted = formatTimeForAccessibility(audioPlayerService.duration)
-        return "\(currentFormatted) of \(durationFormatted)"
+        let currentFormatted = formatTimeForAccessibility(displayCurrentTime)
+        let durationFormatted = formatTimeForAccessibility(displayTotalDuration)
+        let context = audioPlayerService.isPlayingFromFolder ? " folder progress" : ""
+        return "\(currentFormatted) of \(durationFormatted)\(context)"
     }
     
     // MARK: - Performance Optimization Methods
@@ -586,23 +591,40 @@ struct SlideUpPlayerView: View {
     
     // MARK: - Computed Properties
     
+    // Folder-aware display properties
+    private var displayCurrentTime: Double {
+        if audioPlayerService.isPlayingFromFolder && audioPlayerService.folderTotalDuration > 0 {
+            return audioPlayerService.folderCurrentTime
+        }
+        return audioPlayerService.currentTime
+    }
+    
+    private var displayTotalDuration: Double {
+        if audioPlayerService.isPlayingFromFolder && audioPlayerService.folderTotalDuration > 0 {
+            return audioPlayerService.folderTotalDuration
+        }
+        return audioPlayerService.duration
+    }
+    
+    private var displayProgress: Double {
+        guard displayTotalDuration > 0 else { return 0 }
+        return displayCurrentTime / displayTotalDuration
+    }
+    
     private var progressWidth: CGFloat {
-        guard audioPlayerService.duration > 0 else { return 12 }
-        let progress = audioPlayerService.currentTime / audioPlayerService.duration
-        return max(12, 311 * progress) // Use 311 as default width (343 - 32 padding)
+        guard displayTotalDuration > 0 else { return 12 }
+        return max(12, 311 * displayProgress) // Use 311 as default width (343 - 32 padding)
     }
     
     private func progressWidthForGeometry(_ geometry: GeometryProxy) -> CGFloat {
-        guard audioPlayerService.duration > 0 else { return 12 }
-        let progress = audioPlayerService.currentTime / audioPlayerService.duration
-        return max(12, geometry.size.width * progress)
+        guard displayTotalDuration > 0 else { return 12 }
+        return max(12, geometry.size.width * displayProgress)
     }
     
     private var progressWidthMinimized: CGFloat {
-        guard audioPlayerService.duration > 0 else { return 6 }
-        let progress = audioPlayerService.currentTime / audioPlayerService.duration
+        guard displayTotalDuration > 0 else { return 6 }
         let availableWidth = 280.0 // Approximate width, will be adjusted by frame
-        return max(6, availableWidth * progress)
+        return max(6, availableWidth * displayProgress)
     }
     
     private func playerHeight(geometry: GeometryProxy) -> CGFloat {

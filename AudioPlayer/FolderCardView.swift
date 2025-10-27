@@ -11,6 +11,7 @@ import CoreData
 struct FolderGridCard: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var audioFileManager: AudioFileManager
     @EnvironmentObject var playlistManager: PlaylistManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
@@ -18,6 +19,8 @@ struct FolderGridCard: View {
     let artworkSize: CGFloat
     let action: () -> Void
     let onDelete: (Folder) -> Void
+    let onSetCustomArtwork: (Folder) -> Void
+    let onRemoveCustomArtwork: (Folder) -> Void
     
     var body: some View {
         Button(action: {
@@ -37,11 +40,40 @@ struct FolderGridCard: View {
                         ))
                         .frame(width: artworkSize, height: artworkSize)
                     
-                    // Playlist icon instead of folder icon
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: artworkSize * 0.4))
-                        .foregroundColor(.white)
-                        .frame(width: artworkSize, height: artworkSize)
+                    // Custom artwork or default icon
+                    if let artworkURL = folder.artworkURL {
+                        LocalAsyncImageWithPhase(url: artworkURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                return AnyView(image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: artworkSize, height: artworkSize)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16)))
+                            case .failure(let error):
+                                let _ = print("🎨 LocalAsyncImage failed to load folder artwork for \(folder.name): \(error)")
+                                let _ = print("🎨 Folder artwork URL: \(artworkURL.path)")
+                                let _ = print("🎨 File exists: \(FileManager.default.fileExists(atPath: artworkURL.path))")
+                                return AnyView(Image(systemName: "play.rectangle.fill")
+                                    .font(.system(size: artworkSize * 0.4))
+                                    .foregroundColor(.white)
+                                    .frame(width: artworkSize, height: artworkSize)
+                                    .accessibilityHidden(true))
+                            case .empty:
+                                return AnyView(ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.2)
+                                    .frame(width: artworkSize, height: artworkSize))
+                            }
+                        }
+                    } else {
+                        // Default folder/playlist icon
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: artworkSize * 0.4))
+                            .foregroundColor(.white)
+                            .frame(width: artworkSize, height: artworkSize)
+                            .accessibilityHidden(true)
+                    }
                     
                     // File count badge in top right corner
                     if folder.fileCount > 0 {
@@ -133,6 +165,27 @@ struct FolderGridCard: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            // Custom artwork actions
+            Button(action: {
+                onSetCustomArtwork(folder)
+            }) {
+                Label("Set Custom Artwork", systemImage: "photo")
+            }
+            .accessibilityLabel("Set custom artwork")
+            .accessibilityHint("Choose a custom image as folder artwork")
+            
+            if audioFileManager.hasCustomArtwork(for: folder) {
+                Button(action: {
+                    onRemoveCustomArtwork(folder)
+                }) {
+                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                }
+                .accessibilityLabel("Remove custom artwork")
+                .accessibilityHint("Remove the custom artwork and revert to default")
+            }
+            
+            Divider()
+            
             Button(role: .destructive, action: {
                 onDelete(folder)
             }) {
@@ -191,12 +244,15 @@ struct FolderGridCard: View {
 struct FolderListCard: View {
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var audioFileManager: AudioFileManager
     @EnvironmentObject var playlistManager: PlaylistManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let folder: Folder
     let action: () -> Void
     let onDelete: (Folder) -> Void
+    let onSetCustomArtwork: (Folder) -> Void
+    let onRemoveCustomArtwork: (Folder) -> Void
     
     var body: some View {
         Button(action: {
@@ -215,6 +271,27 @@ struct FolderListCard: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            // Custom artwork actions
+            Button(action: {
+                onSetCustomArtwork(folder)
+            }) {
+                Label("Set Custom Artwork", systemImage: "photo")
+            }
+            .accessibilityLabel("Set custom artwork")
+            .accessibilityHint("Choose a custom image as folder artwork")
+            
+            if audioFileManager.hasCustomArtwork(for: folder) {
+                Button(action: {
+                    onRemoveCustomArtwork(folder)
+                }) {
+                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                }
+                .accessibilityLabel("Remove custom artwork")
+                .accessibilityHint("Remove the custom artwork and revert to default")
+            }
+            
+            Divider()
+            
             Button(role: .destructive, action: {
                 onDelete(folder)
             }) {
@@ -283,9 +360,32 @@ struct FolderListCard: View {
                 ))
                 .frame(width: 60, height: 60)
             
-            Image(systemName: "play.rectangle.fill")
-                .font(.title2)
-                .foregroundColor(.white)
+            // Custom artwork or default icon
+            if let artworkURL = folder.artworkURL {
+                LocalAsyncImageWithPhase(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        return AnyView(image
+                            .resizable()
+                            .aspectRatio(1, contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 8)))
+                    case .failure(let error):
+                        let _ = print("🎨 LocalAsyncImage failed to load folder artwork for \(folder.name): \(error)")
+                        return AnyView(Image(systemName: "play.rectangle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white))
+                    case .empty:
+                        return AnyView(ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8))
+                    }
+                }
+            } else {
+                Image(systemName: "play.rectangle.fill")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
             
             // File count badge
             if folder.fileCount > 0 {
@@ -369,13 +469,17 @@ struct FolderListCard: View {
             folder: sampleFolder,
             artworkSize: 120,
             action: {},
-            onDelete: { _ in }
+            onDelete: { _ in },
+            onSetCustomArtwork: { _ in },
+            onRemoveCustomArtwork: { _ in }
         )
         
         FolderListCard(
             folder: sampleFolder,
             action: {},
-            onDelete: { _ in }
+            onDelete: { _ in },
+            onSetCustomArtwork: { _ in },
+            onRemoveCustomArtwork: { _ in }
         )
     }
     .environmentObject(AccessibilityManager())

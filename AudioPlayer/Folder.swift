@@ -19,6 +19,7 @@ class Folder: NSManagedObject {
     @NSManaged var path: String
     @NSManaged var dateAdded: Date
     @NSManaged var fileCount: Int32
+    @NSManaged var artworkPath: String?
     @NSManaged var lastPlayedPosition: Double
     @NSManaged var lastPlayedDate: Date?
     @NSManaged var audioFiles: NSSet?
@@ -41,6 +42,7 @@ class Folder: NSManagedObject {
         self.lastPlayedDate = nil
         self.lastPlayedAudioFile = nil
         self.parentFolder = parentFolder
+        self.artworkPath = nil
     }
     
     // Computed properties
@@ -56,6 +58,14 @@ class Folder: NSManagedObject {
         return Array(set).sorted { first, second in
             return first.name.isNaturallyLessThan(second.name)
         }
+    }
+    
+    var artworkURL: URL? {
+        guard let artworkPath = artworkPath,
+              let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return documentsDirectory.appendingPathComponent(artworkPath)
     }
     
     // Update file count
@@ -112,6 +122,41 @@ class Folder: NSManagedObject {
     /// Get the position to resume from
     func getResumePosition() -> Double {
         return lastPlayedPosition
+    }
+    
+    // MARK: - Folder Duration Calculations
+    
+    /// Calculate the total duration of all audio files in this folder
+    var totalDuration: Double {
+        return audioFilesArray.reduce(0) { total, audioFile in
+            return total + audioFile.duration
+        }
+    }
+    
+    /// Calculate the current cumulative position through the entire folder
+    func getCurrentFolderPosition(currentFile: AudioFile, currentTime: Double) -> Double {
+        let orderedFiles = audioFilesArray
+        guard let currentIndex = orderedFiles.firstIndex(of: currentFile) else { return 0.0 }
+        
+        // Add duration of all completed files before current
+        var cumulativeTime: Double = 0.0
+        for i in 0..<currentIndex {
+            cumulativeTime += orderedFiles[i].duration
+        }
+        
+        // Add current position in current file
+        cumulativeTime += currentTime
+        
+        return cumulativeTime
+    }
+    
+    /// Get progress percentage through the entire folder (0.0 to 1.0)
+    func getFolderProgress(currentFile: AudioFile, currentTime: Double) -> Double {
+        let totalDuration = self.totalDuration
+        guard totalDuration > 0 else { return 0.0 }
+        
+        let currentPosition = getCurrentFolderPosition(currentFile: currentFile, currentTime: currentTime)
+        return min(max(currentPosition / totalDuration, 0.0), 1.0)
     }
 }
 

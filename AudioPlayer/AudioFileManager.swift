@@ -84,7 +84,7 @@ class AudioFileManager: ObservableObject {
         }
         
         // Analyze individual files for smart grouping by filename patterns
-        let smartGroups = await analyzeFilesForSmartGrouping(individualFiles, context: context)
+        let smartGroups = await MainActor.run { analyzeFilesForSmartGrouping(individualFiles, context: context) }
         
         // Import individual files with smart grouping
         for fileURL in individualFiles {
@@ -126,7 +126,7 @@ class AudioFileManager: ObservableObject {
         }
         
         // Import files grouped by folder
-        for (folderPath, folderData) in folderStructure {
+        for (_, folderData) in folderStructure {
             for fileURL in folderData.files {
                 // Start accessing security-scoped resource for folder files
                 let isAccessing = fileURL.startAccessingSecurityScopedResource()
@@ -179,14 +179,14 @@ class AudioFileManager: ObservableObject {
         let pattern: String
     }
     
-    private func analyzeFilesForSmartGrouping(_ files: [URL], context: NSManagedObjectContext) async -> [SmartGroup] {
+    @MainActor
+    private func analyzeFilesForSmartGrouping(_ files: [URL], context: NSManagedObjectContext) -> [SmartGroup] {
         guard files.count >= 2 else { return [] } // Need at least 2 files to group
         
         // Extract filename patterns
         var patternGroups: [String: [URL]] = [:]
         
         for fileURL in files {
-            let fileName = fileURL.lastPathComponent
             let nameWithoutExtension = fileURL.deletingPathExtension().lastPathComponent
             
             // Find common patterns in the filename
@@ -224,7 +224,7 @@ class AudioFileManager: ObservableObject {
                 let folderName = cleanPatternForFolderName(pattern)
                 let folderPath = "smart_group_\(UUID().uuidString)"
                 
-                let folder = await getOrCreateFolder(name: folderName, path: folderPath, parentFolder: nil, context: context)
+                let folder = getOrCreateFolder(name: folderName, path: folderPath, parentFolder: nil, context: context)
                 
                 let smartGroup = SmartGroup(
                     folder: folder,
@@ -308,11 +308,12 @@ class AudioFileManager: ObservableObject {
             let folderName = url.lastPathComponent
             let folderPath = url.path
             
-            // Create or get folder entity
-            let folder = await getOrCreateFolder(name: folderName, path: folderPath, parentFolder: parentFolder, context: context)
-            
-            if folderStructure[folderPath] == nil {
-                folderStructure[folderPath] = (folder: folder, files: [])
+            await MainActor.run {
+                // Get or create folder entity
+                let folder = getOrCreateFolder(name: folderName, path: folderPath, parentFolder: parentFolder, context: context)
+                if folderStructure[folderPath] == nil {
+                    folderStructure[folderPath] = (folder: folder, files: [])
+                }
             }
             
             let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
@@ -333,11 +334,14 @@ class AudioFileManager: ObservableObject {
                 
                 if isItemDirectory.boolValue {
                     // Recursively process subdirectory (security scope will be handled in recursive call)
-                    await processDirectory(item, folderStructure: &folderStructure, context: context, parentFolder: folder)
+                    // Pass parentFolder as nil so inside the recursive call the folder is resolved again inside MainActor
+                    await processDirectory(item, folderStructure: &folderStructure, context: context, parentFolder: nil)
                 } else {
-                    // Add audio file to this folder
+                    // Add audio file to this folder inside Main Actor context to keep concurrency safe
                     if isAudioFile(item) {
-                        folderStructure[folderPath]?.files.append(item)
+                        await MainActor.run {
+                            folderStructure[folderPath]?.files.append(item)
+                        }
                     }
                 }
             }
@@ -346,25 +350,24 @@ class AudioFileManager: ObservableObject {
         }
     }
     
-    private func getOrCreateFolder(name: String, path: String, parentFolder: Folder?, context: NSManagedObjectContext) async -> Folder {
-        return await MainActor.run {
-            // Check if folder already exists
-            let request = Folder.fetchRequest()
-            request.predicate = NSPredicate(format: "path == %@", path)
-            
-            do {
-                let existingFolders = try context.fetch(request)
-                if let existingFolder = existingFolders.first {
-                    return existingFolder
-                }
-            } catch {
-                print("Error fetching existing folder: \(error)")
+    @MainActor
+    private func getOrCreateFolder(name: String, path: String, parentFolder: Folder?, context: NSManagedObjectContext) -> Folder {
+        // Check if folder already exists
+        let request = Folder.fetchRequest()
+        request.predicate = NSPredicate(format: "path == %@", path)
+        
+        do {
+            let existingFolders = try context.fetch(request)
+            if let existingFolder = existingFolders.first {
+                return existingFolder
             }
-            
-            // Create new folder
-            let folder = Folder(context: context, name: name, path: path, parentFolder: parentFolder)
-            return folder
+        } catch {
+            print("Error fetching existing folder: \(error)")
         }
+        
+        // Create new folder
+        let folder = Folder(context: context, name: name, path: path, parentFolder: parentFolder)
+        return folder
     }
     
     private func isAudioFile(_ url: URL) -> Bool {
@@ -741,6 +744,144 @@ class AudioFileManager: ObservableObject {
             print("🎨 Error fetching audio files: \(error)")
         }
     }
+    
+    // MARK: - Custom Artwork Management
+    
+    func saveCustomArtwork(for audioFile: AudioFile, imageData: Data, context: NSManagedObjectContext) async throws {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw FileManagerError.documentsDirectoryNotFound
+        }
+        
+        // Create artwork folder if it doesn't exist
+        let artworkDirectory = documentsDirectory.appendingPathComponent("Artwork")
+        if !FileManager.default.fileExists(atPath: artworkDirectory.path) {
+            try FileManager.default.createDirectory(at: artworkDirectory, withIntermediateDirectories: true)
+        }
+        
+        // Delete old custom artwork if it exists
+        await MainActor.run {
+            if let oldArtworkURL = audioFile.artworkURL,
+               FileManager.default.fileExists(atPath: oldArtworkURL.path) {
+                try? FileManager.default.removeItem(at: oldArtworkURL)
+            }
+        }
+        
+        // Create unique filename for new custom artwork
+        let fileName = audioFile.originalFileNameWithoutExtension
+        let artworkFileName = "custom_\(UUID().uuidString)_\(fileName).jpg"
+        let artworkURL = artworkDirectory.appendingPathComponent(artworkFileName)
+        
+        // Save new artwork
+        try imageData.write(to: artworkURL)
+        
+        // Update audio file entity
+        await MainActor.run {
+            audioFile.artworkPath = "Artwork/\(artworkFileName)"
+            
+            do {
+                try context.save()
+                print("✅ Successfully saved custom artwork for: \(audioFile.title ?? "Unknown")")
+            } catch {
+                print("❌ Failed to save context after updating artwork: \(error)")
+                // Clean up the file if Core Data save failed
+                try? FileManager.default.removeItem(at: artworkURL)
+            }
+        }
+    }
+    
+    func removeCustomArtwork(for audioFile: AudioFile, context: NSManagedObjectContext) async {
+        await MainActor.run {
+            // Delete the artwork file
+            if let artworkURL = audioFile.artworkURL,
+               FileManager.default.fileExists(atPath: artworkURL.path) {
+                try? FileManager.default.removeItem(at: artworkURL)
+            }
+            
+            // Clear the artwork path in Core Data
+            audioFile.artworkPath = nil
+            
+            do {
+                try context.save()
+                print("✅ Successfully removed custom artwork for: \(audioFile.title ?? "Unknown")")
+            } catch {
+                print("❌ Failed to save context after removing artwork: \(error)")
+            }
+        }
+    }
+    
+    func hasCustomArtwork(for audioFile: AudioFile) -> Bool {
+        guard let artworkPath = audioFile.artworkPath else { return false }
+        return artworkPath.contains("custom_")
+    }
+    
+    // MARK: - Folder Artwork Management
+    
+    func saveCustomArtwork(for folder: Folder, imageData: Data, context: NSManagedObjectContext) async throws {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw FileManagerError.documentsDirectoryNotFound
+        }
+        
+        // Create artwork folder if it doesn't exist
+        let artworkDirectory = documentsDirectory.appendingPathComponent("Artwork")
+        if !FileManager.default.fileExists(atPath: artworkDirectory.path) {
+            try FileManager.default.createDirectory(at: artworkDirectory, withIntermediateDirectories: true)
+        }
+        
+        // Delete old custom artwork if it exists
+        await MainActor.run {
+            if let oldArtworkURL = folder.artworkURL,
+               FileManager.default.fileExists(atPath: oldArtworkURL.path) {
+                try? FileManager.default.removeItem(at: oldArtworkURL)
+            }
+        }
+        
+        // Create unique filename for new custom folder artwork
+        let folderName = folder.name.replacingOccurrences(of: "/", with: "_")
+        let artworkFileName = "custom_folder_\(UUID().uuidString)_\(folderName).jpg"
+        let artworkURL = artworkDirectory.appendingPathComponent(artworkFileName)
+        
+        // Save new artwork
+        try imageData.write(to: artworkURL)
+        
+        // Update folder entity
+        await MainActor.run {
+            folder.artworkPath = "Artwork/\(artworkFileName)"
+            
+            do {
+                try context.save()
+                print("✅ Successfully saved custom artwork for folder: \(folder.name)")
+            } catch {
+                print("❌ Failed to save context after updating folder artwork: \(error)")
+                // Clean up the file if Core Data save failed
+                try? FileManager.default.removeItem(at: artworkURL)
+            }
+        }
+    }
+    
+    func removeCustomArtwork(for folder: Folder, context: NSManagedObjectContext) async {
+        await MainActor.run {
+            // Delete the artwork file
+            if let artworkURL = folder.artworkURL,
+               FileManager.default.fileExists(atPath: artworkURL.path) {
+                try? FileManager.default.removeItem(at: artworkURL)
+            }
+            
+            // Clear the artwork path in Core Data
+            folder.artworkPath = nil
+            
+            do {
+                try context.save()
+                print("✅ Successfully removed custom artwork for folder: \(folder.name)")
+            } catch {
+                print("❌ Failed to save context after removing folder artwork: \(error)")
+            }
+        }
+    }
+    
+    func hasCustomArtwork(for folder: Folder) -> Bool {
+        guard let artworkPath = folder.artworkPath else { return false }
+        return artworkPath.contains("custom_folder_")
+    }
 }
 
 // MARK: - Supporting Types
@@ -757,3 +898,4 @@ struct AudioMetadata {
 enum FileManagerError: Error {
     case documentsDirectoryNotFound
 }
+

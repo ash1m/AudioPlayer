@@ -13,12 +13,7 @@ import Combine
 class LocalizationManager: ObservableObject {
     
     // MARK: - Current Language
-    @Published var currentLanguage: String = "en" {
-        didSet {
-            // Force UI update when language changes
-            objectWillChange.send()
-        }
-    }
+    @Published var currentLanguage: String = "en"
     
     // MARK: - Language Bundle
     private var languageBundle: Bundle?

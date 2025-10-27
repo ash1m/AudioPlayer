@@ -44,7 +44,7 @@ struct LocalAsyncImage<Content: View, Placeholder: View>: View {
         .onAppear {
             loadImage()
         }
-        .onChange(of: url) { newURL in
+        .onChange(of: url) {
             loadImage()
         }
     }
@@ -128,7 +128,7 @@ struct LocalAsyncImageWithPhase: View {
             .onAppear {
                 loadImage()
             }
-            .onChange(of: url) { newURL in
+            .onChange(of: url) { 
                 loadImage()
             }
     }

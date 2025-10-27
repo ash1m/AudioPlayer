@@ -428,11 +428,11 @@ class AccessibilityValidationTools: ObservableObject {
     private func validateElementTraits(element: UIView, traits: UIAccessibilityTraits) -> String? {
         // Validate that traits match element type and purpose
         
-        if let button = element as? UIButton, !traits.contains(.button) {
+        if let _ = element as? UIButton, !traits.contains(.button) {
             return "UIButton should have .button trait"
         }
         
-        if let slider = element as? UISlider, !traits.contains(.adjustable) {
+        if element is UISlider, !traits.contains(.adjustable) {
             return "UISlider should have .adjustable trait"
         }
         

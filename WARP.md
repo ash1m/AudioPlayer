@@ -64,7 +64,10 @@ The app uses Core Data for persistent storage with four main entities:
 - `dateAdded: Date` - Import date
 - `lastPlayed: Date?` - Last played timestamp
 - `playCount: Int32` - Number of times played
-- Relationship: `folder` (to-one with Folder)
+- Relationships:
+  - `folder` (to-one with Folder) - Parent folder
+  - `lastPlayedInFolders` (to-many with Folder) - Folders where this is the last played file
+  - `playlistItems` (to-many with PlaylistItem) - Playlist items referencing this file
 
 #### Folder Entity (Hierarchical Organization)
 - `id: UUID` - Unique identifier
@@ -72,10 +75,14 @@ The app uses Core Data for persistent storage with four main entities:
 - `path: String` - Folder path
 - `dateAdded: Date` - Creation date
 - `fileCount: Int32` - Cached count of audio files
+- `artworkPath: String?` - Path to folder artwork image
+- `lastPlayedPosition: Double` - Last playback position within folder
+- `lastPlayedDate: Date?` - Last folder playback timestamp
 - Relationships:
   - `audioFiles` (to-many with AudioFile) - Files in this folder
   - `parentFolder` (to-one with Folder) - Parent folder (nil for root)
   - `subFolders` (to-many with Folder) - Child folders
+  - `lastPlayedAudioFile` (to-one with AudioFile) - Last played file in folder for resume
 
 #### Playlist Entity
 - `id: UUID` - Unique identifier
@@ -142,6 +149,17 @@ Sophisticated folder organization system:
 - **Deep Navigation**: Unlimited nesting depth supported
 - **Context Actions**: Delete folders with cascade delete of contents
 
+#### Folder-Wide Progress Tracking (October 2025)
+Advanced progress tracking across entire folders for audiobook/album playback:
+- **Total Duration Calculation**: Sums duration of all audio files in folder
+- **Cumulative Position**: Tracks position through entire folder, not just current file
+- **Progress Display**: Shows folder progress (e.g., "01:20 / 02:30") across all interfaces
+- **Control Center Integration**: Lock screen and Control Center show folder-wide progress
+- **UI Consistency**: SlideUpPlayerView, progress bars, and accessibility all use folder context
+- **Smart Context Detection**: Automatically switches between file and folder progress modes
+- **Published Properties**: Real-time updates via `@Published var folderTotalDuration` and `folderCurrentTime`
+- **Accessibility Support**: VoiceOver announces "folder progress" context for better user experience
+
 ### Library View Modes
 Flexible viewing options in `LibraryGridView`:
 - **Grid Mode**: 2-column LazyVGrid with large artwork thumbnails
@@ -176,12 +194,24 @@ Sophisticated import pipeline in `AudioFileManager` with comprehensive processin
 - **Result Dialog**: User-friendly summary with option to view detailed results
 - **Accessibility Announcements**: VoiceOver feedback for import completion
 
-### Background Audio & Media Controls
-The app supports background playback through:
-- AVAudioSession configuration for `.playback` category
-- MPRemoteCommandCenter integration for lock screen/control center
-- Background modes enabled in Info.plist
-- Position saving/restoration for resuming playback
+### Audio Playback Engine (AVPlayer)
+The app uses **AVPlayer** for robust audio playback with full system integration:
+- **Native Control Center Integration**: Automatic registration with iOS media system
+- **Reliable Lock Screen Controls**: Native iOS media player behavior
+- **Background Playback**: Seamless background audio with proper session management
+- **Variable Speed Control**: 0.25x to 3x playback speed with smooth rate changes
+- **Time Observation**: Efficient periodic time observer (0.5s intervals)
+- **KVO Integration**: Real-time duration and status monitoring
+- **Interruption Handling**: Robust handling of calls, notifications, and route changes
+- **MPNowPlayingInfoCenter**: Rich metadata display in Control Center and lock screen
+- **MPRemoteCommandCenter**: Full remote command support (play, pause, seek, skip, next/previous)
+
+#### Migration from AVAudioPlayer (October 2025)
+- **Reason**: AVAudioPlayer had limited Control Center integration reliability
+- **Benefits**: Immediate Control Center appearance, better system integration, enhanced background playback
+- **Architecture**: Maintained 100% API compatibility with existing SwiftUI views and business logic
+- **Observer Pattern**: Replaced manual timer with AVPlayer's addPeriodicTimeObserver
+- **Event Handling**: KVO observers for duration/status + notifications for track completion
 
 ## Key Implementation Details
 
@@ -257,6 +287,27 @@ Comprehensive error handling for import operations:
 This codebase prioritizes user experience with comprehensive audio format support, background playback, and robust file management while maintaining clean SwiftUI architecture patterns.
 
 ## Recent Changes & Design Decisions
+
+### AVPlayer Migration & Folder Progress (October 2025)
+- **Complete AVPlayer Migration**: Migrated from AVAudioPlayer to AVPlayer for better Control Center integration
+  - **Reliable Media Controls**: Automatic Control Center and lock screen controls now work consistently
+  - **Enhanced System Integration**: Better audio session management and interruption handling
+  - **Observer-Based Architecture**: Replaced manual timers with AVPlayer's periodic time observers
+  - **100% API Compatibility**: All existing SwiftUI views work unchanged with new audio engine
+
+- **Folder-Wide Progress Tracking**: Added comprehensive folder progress display across all interfaces
+  - **Total Folder Duration**: Calculates and displays cumulative duration of all files in folder
+  - **Folder Position Tracking**: Shows current position through entire folder, not just current file
+  - **Universal Integration**: Works in SlideUpPlayerView, Control Center, lock screen, and accessibility
+  - **Smart Context Switching**: Automatically detects folder vs individual file playback
+  - **Enhanced UX**: Perfect for audiobooks and album playback with seamless progress tracking
+
+### Core Data Model Enhancements (October 2025)
+- **Fixed Inverse Relationships**: Resolved Core Data warnings by adding proper inverse relationships
+  - `Folder.lastPlayedAudioFile` ↔ `AudioFile.lastPlayedInFolders`
+  - `PlaylistItem.audioFile` ↔ `AudioFile.playlistItems`
+- **Added Folder Artwork Support**: `artworkPath` attribute for folder-level artwork
+- **Enhanced Folder Playback State**: Better tracking of folder playback position and resume state
 
 ### Major Performance Optimizations (October 2025)
 - **Critical CPU Performance Fix**: Resolved severe performance issue reducing CPU usage from 120% to 51% (57.5% improvement)

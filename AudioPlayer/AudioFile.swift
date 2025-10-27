@@ -29,6 +29,7 @@ class AudioFile: NSManagedObject {
     @NSManaged var currentPosition: Double
     @NSManaged var artworkPath: String?
     @NSManaged var folder: Folder?
+    @NSManaged var lastPlayedInFolders: NSSet?
     @NSManaged var playlistItems: NSSet?
     
     // Computed property for file URL
@@ -72,6 +73,21 @@ class AudioFile: NSManagedObject {
         self.playCount = 0
         self.currentPosition = 0
     }
+}
+
+// MARK: Generated accessors for lastPlayedInFolders
+extension AudioFile {
+    @objc(addLastPlayedInFoldersObject:)
+    @NSManaged func addToLastPlayedInFolders(_ value: Folder)
+
+    @objc(removeLastPlayedInFoldersObject:)
+    @NSManaged func removeFromLastPlayedInFolders(_ value: Folder)
+
+    @objc(addLastPlayedInFolders:)
+    @NSManaged func addToLastPlayedInFolders(_ values: NSSet)
+
+    @objc(removeLastPlayedInFolders:)
+    @NSManaged func removeFromLastPlayedInFolders(_ values: NSSet)
 }
 
 // MARK: Generated accessors for playlistItems

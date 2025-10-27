@@ -42,9 +42,14 @@ struct LibraryGridView: View {
     @State private var isShowingDocumentPicker = false
     @State private var isShowingAlert = false
     @State private var alertMessage = ""
-    @State private var isImporting = false
+    @State private var showingImportResults = false
     @State private var importResults: [AudioFileManager.ImportResult] = []
+    @State private var showingArtworkPicker = false
+    @State private var selectedAudioFileForArtwork: AudioFile?
+    @State private var selectedFolderForArtwork: Folder?
+    @State private var artworkErrorMessage = ""
     @State private var isShowingDetailedResults = false
+    @State private var isImporting = false
     @State private var viewMode: LibraryViewMode = .grid
     @State private var sortOption: SortOption = .fileName
     
@@ -104,11 +109,36 @@ struct LibraryGridView: View {
                     .mpeg4Audio,
                     .wav,
                     .audio
-                ]
-            ) { urls in
-                importAudioFiles(urls: urls)
+                ],
+                onDocumentsSelected: importAudioFiles
+            )
+        }
+        .sheet(isPresented: $showingArtworkPicker) {
+            if let selectedAudioFile = selectedAudioFileForArtwork {
+                CustomArtworkPicker(
+                    isPresented: $showingArtworkPicker,
+                    onImageSelected: { image in
+                        handleCustomArtwork(for: selectedAudioFile, image: image)
+                    },
+                    onError: { error in
+                        artworkErrorMessage = error
+                        isShowingAlert = true
+                        alertMessage = artworkErrorMessage
+                    }
+                )
+            } else if let selectedFolder = selectedFolderForArtwork {
+                CustomArtworkPicker(
+                    isPresented: $showingArtworkPicker,
+                    onImageSelected: { image in
+                        handleCustomArtwork(for: selectedFolder, image: image)
+                    },
+                    onError: { error in
+                        artworkErrorMessage = error
+                        isShowingAlert = true
+                        alertMessage = artworkErrorMessage
+                    }
+                )
             }
-            .modalFocus(title: "File picker", isPresented: isShowingDocumentPicker)
         }
         .alert(localizationManager.importResultsTitle, isPresented: $isShowingAlert) {
             Button(localizationManager.importButtonOK) { }
@@ -227,6 +257,108 @@ struct LibraryGridView: View {
         }
         
         rootViewController.present(activityViewController, animated: true)
+    }
+    
+    private func setCustomArtwork(_ audioFile: AudioFile) {
+        selectedAudioFileForArtwork = audioFile
+        selectedFolderForArtwork = nil // Clear folder selection
+        showingArtworkPicker = true
+    }
+    
+    private func handleCustomArtwork(for audioFile: AudioFile, image: UIImage) {
+        guard let imageData = ArtworkValidator.processImageForArtwork(image) else {
+            artworkErrorMessage = "Failed to process selected image"
+            isShowingAlert = true
+            alertMessage = artworkErrorMessage
+            return
+        }
+        
+        Task {
+            do {
+                try await audioFileManager.saveCustomArtwork(for: audioFile, imageData: imageData, context: viewContext)
+                
+                await MainActor.run {
+                    // Trigger a refresh to update the UI
+                    refreshContent()
+                    
+                    // Announce success for VoiceOver users
+                    accessibilityManager.announceMessage("Custom artwork set for \(audioFile.title ?? "audio file")")
+                }
+                
+            } catch {
+                await MainActor.run {
+                    artworkErrorMessage = "Failed to save custom artwork: \(error.localizedDescription)"
+                    isShowingAlert = true
+                    alertMessage = artworkErrorMessage
+                }
+            }
+        }
+    }
+    
+    private func removeCustomArtwork(_ audioFile: AudioFile) {
+        Task {
+            await audioFileManager.removeCustomArtwork(for: audioFile, context: viewContext)
+            
+            await MainActor.run {
+                // Trigger a refresh to update the UI
+                refreshContent()
+                
+                // Announce removal for VoiceOver users
+                accessibilityManager.announceMessage("Custom artwork removed from \(audioFile.title ?? "audio file")")
+            }
+        }
+    }
+    
+    // MARK: - Folder Artwork Methods
+    
+    private func setCustomArtwork(_ folder: Folder) {
+        selectedFolderForArtwork = folder
+        selectedAudioFileForArtwork = nil // Clear audio file selection
+        showingArtworkPicker = true
+    }
+    
+    private func handleCustomArtwork(for folder: Folder, image: UIImage) {
+        guard let imageData = ArtworkValidator.processImageForArtwork(image) else {
+            artworkErrorMessage = "Failed to process selected image"
+            isShowingAlert = true
+            alertMessage = artworkErrorMessage
+            return
+        }
+        
+        Task {
+            do {
+                try await audioFileManager.saveCustomArtwork(for: folder, imageData: imageData, context: viewContext)
+                
+                await MainActor.run {
+                    // Trigger a refresh to update the UI
+                    refreshContent()
+                    
+                    // Announce success for VoiceOver users
+                    accessibilityManager.announceMessage("Custom artwork set for folder \(folder.name)")
+                }
+                
+            } catch {
+                await MainActor.run {
+                    artworkErrorMessage = "Failed to save custom artwork: \(error.localizedDescription)"
+                    isShowingAlert = true
+                    alertMessage = artworkErrorMessage
+                }
+            }
+        }
+    }
+    
+    private func removeCustomArtwork(_ folder: Folder) {
+        Task {
+            await audioFileManager.removeCustomArtwork(for: folder, context: viewContext)
+            
+            await MainActor.run {
+                // Trigger a refresh to update the UI
+                refreshContent()
+                
+                // Announce removal for VoiceOver users
+                accessibilityManager.announceMessage("Custom artwork removed from folder \(folder.name)")
+            }
+        }
     }
     
     private func importAudioFiles(urls: [URL]) {
@@ -378,7 +510,9 @@ struct LibraryGridView: View {
                     onDelete: { folder in
                         folderNavigationManager.deleteFolder(folder, context: viewContext)
                         refreshContent()
-                    }
+                    },
+                    onSetCustomArtwork: setCustomArtwork,
+                    onRemoveCustomArtwork: removeCustomArtwork
                 )
             }
             
@@ -391,7 +525,9 @@ struct LibraryGridView: View {
                     onDelete: deleteAudioFile,
                     onMarkAsPlayed: markAsPlayed,
                     onResetProgress: resetProgress,
-                    onShare: shareAudioFile
+                    onShare: shareAudioFile,
+                    onSetCustomArtwork: setCustomArtwork,
+                    onRemoveCustomArtwork: removeCustomArtwork
                 )
             }
         }
@@ -412,7 +548,9 @@ struct LibraryGridView: View {
                         onDelete: { folder in
                             folderNavigationManager.deleteFolder(folder, context: viewContext)
                             refreshContent()
-                        }
+                        },
+                        onSetCustomArtwork: setCustomArtwork,
+                        onRemoveCustomArtwork: removeCustomArtwork
                     )
                     
                     if folder != folders.last || !audioFiles.isEmpty {
@@ -425,14 +563,16 @@ struct LibraryGridView: View {
             // Then show audio files
             ForEach(audioFiles, id: \.self) { audioFile in
                 VStack(spacing: 0) {
-                    AudioFileListCard(
-                        audioFile: audioFile,
-                        action: { handleAudioFileSelection(audioFile) },
-                        onDelete: deleteAudioFile,
-                        onMarkAsPlayed: markAsPlayed,
-                        onResetProgress: resetProgress,
-                        onShare: shareAudioFile
-                    )
+                AudioFileListCard(
+                    audioFile: audioFile,
+                    action: { handleAudioFileSelection(audioFile) },
+                    onDelete: deleteAudioFile,
+                    onMarkAsPlayed: markAsPlayed,
+                    onResetProgress: resetProgress,
+                    onShare: shareAudioFile,
+                    onSetCustomArtwork: setCustomArtwork,
+                    onRemoveCustomArtwork: removeCustomArtwork
+                )
                     
                     if audioFile != audioFiles.last {
                         Divider()
@@ -588,6 +728,7 @@ struct LibraryGridView: View {
 struct AudioFileGridCard: View {
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var audioFileManager: AudioFileManager
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.managedObjectContext) private var viewContext
     let audioFile: AudioFile
@@ -597,6 +738,8 @@ struct AudioFileGridCard: View {
     let onMarkAsPlayed: (AudioFile) -> Void
     let onResetProgress: (AudioFile) -> Void
     let onShare: (AudioFile) -> Void
+    let onSetCustomArtwork: (AudioFile) -> Void
+    let onRemoveCustomArtwork: (AudioFile) -> Void
     
     
     var body: some View {
@@ -755,6 +898,27 @@ struct AudioFileGridCard: View {
             
             Divider()
             
+            // Custom artwork actions
+            Button(action: {
+                onSetCustomArtwork(audioFile)
+            }) {
+                Label("Set Custom Artwork", systemImage: "photo")
+            }
+            .accessibilityLabel("Set custom artwork")
+            .accessibilityHint("Choose a custom image as album artwork")
+            
+            if audioFileManager.hasCustomArtwork(for: audioFile) {
+                Button(action: {
+                    onRemoveCustomArtwork(audioFile)
+                }) {
+                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                }
+                .accessibilityLabel("Remove custom artwork")
+                .accessibilityHint("Remove the custom artwork and revert to original")
+            }
+            
+            Divider()
+            
             // Sharing action
             Button(action: {
                 onShare(audioFile)
@@ -829,6 +993,7 @@ struct AudioFileGridCard: View {
 struct AudioFileListCard: View {
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var audioFileManager: AudioFileManager
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.managedObjectContext) private var viewContext
     let audioFile: AudioFile
@@ -837,6 +1002,8 @@ struct AudioFileListCard: View {
     let onMarkAsPlayed: (AudioFile) -> Void
     let onResetProgress: (AudioFile) -> Void
     let onShare: (AudioFile) -> Void
+    let onSetCustomArtwork: (AudioFile) -> Void
+    let onRemoveCustomArtwork: (AudioFile) -> Void
     
     var body: some View {
         Button(action: action) {
@@ -982,6 +1149,27 @@ struct AudioFileListCard: View {
             }
             .accessibilityLabel("Reset progress")
             .accessibilityHint("Resets playback to the beginning")
+            
+            Divider()
+            
+            // Custom artwork actions
+            Button(action: {
+                onSetCustomArtwork(audioFile)
+            }) {
+                Label("Set Custom Artwork", systemImage: "photo")
+            }
+            .accessibilityLabel("Set custom artwork")
+            .accessibilityHint("Choose a custom image as album artwork")
+            
+            if audioFileManager.hasCustomArtwork(for: audioFile) {
+                Button(action: {
+                    onRemoveCustomArtwork(audioFile)
+                }) {
+                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                }
+                .accessibilityLabel("Remove custom artwork")
+                .accessibilityHint("Remove the custom artwork and revert to original")
+            }
             
             Divider()
             

@@ -24,24 +24,12 @@ struct AccessibilitySettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Current Accessibility Status Section
-                Section {
-                    accessibilityStatusView
-                } header: {
-                    Label("System Settings", systemImage: "gear.badge")
-                        .dynamicTypeSupport(.headline, maxSize: .accessibility2)
-                        .accessibilityAddTraits(.isHeader)
-                } footer: {
-                    Text("These settings are controlled by your device's Accessibility settings in the Settings app.")
-                        .dynamicTypeSupport(.footnote, maxSize: .accessibility1, lineLimit: 3)
-                        .visualAccessibility(foreground: .secondary)
-                }
                 
                 // Audio Player Specific Settings
                 Section {
                     audioPlayerAccessibilitySettings
                 } header: {
-                    Label("Audio Player", systemImage: "speaker.wave.2")
+                    Text("Audio Player")
                         .dynamicTypeSupport(.headline, maxSize: .accessibility2)
                         .accessibilityAddTraits(.isHeader)
                 } footer: {
@@ -54,7 +42,7 @@ struct AccessibilitySettingsView: View {
                 Section {
                     cognitiveAccessibilitySettings
                 } header: {
-                    Label("Cognitive Support", systemImage: "brain")
+                    Text("Cognitive Support")
                         .dynamicTypeSupport(.headline, maxSize: .accessibility2)
                         .accessibilityAddTraits(.isHeader)
                 } footer: {
@@ -67,7 +55,7 @@ struct AccessibilitySettingsView: View {
                 Section {
                     motorAccessibilitySettings
                 } header: {
-                    Label("Motor Accessibility", systemImage: "hand.tap")
+                    Text("Motor Accessibility")
                         .dynamicTypeSupport(.headline, maxSize: .accessibility2)
                         .accessibilityAddTraits(.isHeader)
                 } footer: {
@@ -111,35 +99,6 @@ struct AccessibilitySettingsView: View {
         .visualAccessibility(reducedMotion: true)
     }
     
-    // MARK: - Accessibility Status View
-    
-    private var accessibilityStatusView: some View {
-        VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
-            statusRow(
-                title: "VoiceOver",
-                isActive: accessibilityManager.isVoiceOverRunning,
-                icon: "speaker.wave.3"
-            )
-            
-            statusRow(
-                title: "Reduce Motion",
-                isActive: accessibilityManager.isReduceMotionEnabled,
-                icon: "tortoise"
-            )
-            
-            statusRow(
-                title: "Larger Text",
-                isActive: accessibilityManager.isLargeTextEnabled,
-                icon: "textformat.size"
-            )
-            
-            statusRow(
-                title: "High Contrast",
-                isActive: accessibilityManager.isHighContrastEnabled,
-                icon: "circle.righthalf.filled"
-            )
-        }
-    }
     
     // MARK: - Audio Player Settings
     
