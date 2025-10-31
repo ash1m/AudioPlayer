@@ -1,8 +1,10 @@
+// Tab bar titles
 "tab.library" = "Library";
 "tab.playlist" = "Playlist";
 "tab.player" = "Player";
 "tab.settings" = "Settings";
 
+// Settings view
 "settings.title" = "Settings";
 "settings.accessibility" = "Accessibility";
 "settings.accessibility.label" = "Accessibility";
@@ -11,13 +13,202 @@
 "settings.language.label" = "App language";
 "settings.language.hint" = "Choose the app's display language";
 "language.currently.set" = "Currently set to %@";
-
 "settings.supported.formats" = "Supported formats";
 "settings.supported.formats.list" = "MP3, M4A/AAC, WAV, AIFF, FLAC (where supported)";
 "settings.import.description" = "Import audio files from the Files app, iCloud Drive, or other sources.";
-
 "settings.version" = "Version";
 "settings.build" = "Build";
+
+// Library view
+"library.title" = "Library";
+"library.add" = "Add";
+"library.add.hint" = "Opens file picker to import audio files or folders";
+"library.settings" = "Settings";
+"library.settings.hint" = "Opens app settings and preferences";
+"library.sort.by" = "Sort By";
+"library.empty.folder" = "Empty Folder";
+"library.no.content" = "No Content";
+"library.empty.folder.description" = "This folder is empty";
+"library.no.content.description" = "Tap the 'Add' button to import audio files or folders";
+
+// Context menu actions
+"action.mark.as.played" = "Mark as Played";
+"action.reset.progress" = "Reset Progress";
+"action.set.custom.artwork" = "Set Custom Artwork";
+"action.remove.custom.artwork" = "Remove Custom Artwork";
+"action.share" = "Share";
+"action.delete" = "Delete";
+
+// Accessibility labels and hints
+"accessibility.mark.as.played" = "Mark as played";
+"accessibility.mark.as.played.hint" = "Sets playback progress to complete";
+"accessibility.reset.progress" = "Reset progress";
+"accessibility.reset.progress.hint" = "Resets playback to the beginning";
+"accessibility.set.custom.artwork" = "Set custom artwork";
+"accessibility.set.custom.artwork.hint" = "Choose a custom image as album artwork";
+"accessibility.remove.custom.artwork" = "Remove custom artwork";
+"accessibility.remove.custom.artwork.hint" = "Remove the custom artwork and revert to original";
+"accessibility.share.audio.file" = "Share audio file";
+"accessibility.share.audio.file.hint" = "Opens share sheet to send this file to other apps";
+"accessibility.delete.audio.file" = "Delete audio file";
+"accessibility.delete.audio.file.hint" = "Permanently removes this file from your library";
+"accessibility.add.audio.files" = "Add audio files";
+"accessibility.add.audio.files.hint" = "Opens file picker to import audio files or folders";
+"accessibility.sort.by" = "Sort by %@";
+"accessibility.sort.by.hint" = "Changes library sort order";
+
+// Playback speed options
+"speed.0.5x" = "0.5x";
+"speed.0.75x" = "0.75x";
+"speed.1.0x" = "1.0x";
+"speed.1.25x" = "1.25x";
+"speed.1.5x" = "1.5x";
+"speed.2.0x" = "2.0x";
+"speed.cancel" = "Cancel";
+"playback.speed" = "Playback Speed";
+"playback.speed.set.to.0.5x" = "Playback speed set to 0.5x speed";
+"playback.speed.set.to.0.75x" = "Playback speed set to 0.75x speed";
+"playback.speed.set.to.normal" = "Playback speed set to normal speed";
+"playback.speed.set.to.1.25x" = "Playback speed set to 1.25x speed";
+"playback.speed.set.to.1.5x" = "Playback speed set to 1.5x speed";
+"playback.speed.set.to.2x" = "Playback speed set to 2x speed";
+
+// Player controls
+"player.rewind.15.seconds" = "Rewind 15 seconds";
+"player.rewind.15.seconds.hint" = "Moves playback backward by 15 seconds";
+"player.play" = "Play";
+"player.pause" = "Pause";
+"player.play.hint" = "Starts audio playback";
+"player.pause.hint" = "Pauses audio playback";
+"player.fast.forward.15.seconds" = "Fast forward 15 seconds";
+"player.fast.forward.15.seconds.hint" = "Moves playback forward by 15 seconds";
+"player.skip.forward.15.seconds" = "Skip forward 15 seconds";
+"player.skip.backward.15.seconds" = "Skip backward 15 seconds";
+"player.timeline.scrubber" = "Timeline scrubber";
+"player.timeline.scrubber.hint" = "Double tap to adjust playback position";
+"player.sleep.timer" = "Sleep timer";
+"player.sleep.timer.hint" = "Opens sleep timer options";
+"player.double.tap.expand" = "Double-tap to expand player";
+"player.full.player.open" = "Full player now open";
+"player.minimized" = "Player minimized";
+"player.audio.player" = "Audio player";
+"player.unknown.title" = "Unknown title";
+"player.unknown.artist" = "Unknown artist";
+"player.playing" = "Playing";
+"player.paused" = "Paused";
+"player.now.playing.format" = "Now %@: %@ by %@";
+"player.no.duration.info" = "No duration information";
+"player.minimize.player" = "Minimize player";
+"player.open.playlist" = "Open playlist";
+"player.open.playlist.hint" = "Double tap to view and manage your playlist";
+"player.current.time" = "Current time %@";
+"player.total.duration" = "Total duration %@";
+"player.folder.progress" = " folder progress";
+"player.in.folder" = " in folder";
+"player.remaining" = " remaining";
+"player.of" = " of ";
+
+// Generic terms
+"unknown.artist" = "Unknown Artist";
+"unknown.title" = "Unknown Title";
+"unknown.file" = "Unknown File";
+"title.long.fallback" = "Title Long One Line Second";
+"author.long.fallback" = "Author Name Long One";
+"currently.playing" = "Currently playing";
+"currently.paused" = "Currently paused";
+"currently.selected" = "Currently selected";
+"duration" = "Duration";
+"minutes" = "minutes";
+"minute" = "minute";
+"seconds" = "seconds";
+"second" = "second";
+
+// Playlist view
+"playlist.title" = "Playlist";
+"playlist.build.a.playlist" = "Build a Playlist";
+"playlist.build.a.playlist.description" = "Add imported files to create your custom playlist";
+"playlist.add.files" = "Add Files";
+"playlist.add.files.to.playlist" = "Add files to playlist";
+"playlist.add.files.to.playlist.hint" = "Double tap to open file selection and add audio files to your playlist";
+"playlist.add.more.files" = "Add more files to playlist";
+"playlist.add.more.files.hint" = "Double tap to add additional audio files to the current playlist";
+"playlist.tracks.format" = "%d tracks";
+"playlist.empty" = "Empty playlist";
+"playlist.with.tracks.format" = "Playlist with %d track%@";
+"playlist.track.moved" = "Track moved in playlist";
+"playlist.removed.track" = "Removed %@ from playlist";
+"playlist.removed.tracks.format" = "Removed %d tracks from playlist";
+"playlist.pause.track" = "Pause track";
+"playlist.resume.track" = "Resume track";
+"playlist.play.track" = "Play track";
+"playlist.pause.track.hint" = "Double tap to pause this track";
+"playlist.resume.track.hint" = "Double tap to resume this track";
+"playlist.play.track.hint" = "Double tap to play this track";
+"playlist.track.order.format" = "Track %d";
+"playlist.item.reorder.hint" = "Double tap to go to player. Swipe up or down with one finger to reorder. Swipe right to delete.";
+"playlist.item.play.hint" = "Double tap to play this track. Swipe up or down with one finger to reorder. Swipe right to delete.";
+
+// Accessibility settings
+"accessibility.settings.audio.player" = "Audio Player";
+"accessibility.settings.cognitive.support" = "Cognitive Support";
+"accessibility.settings.motor.accessibility" = "Motor Accessibility";
+"accessibility.settings.reset" = "Reset";
+"accessibility.settings.reset.all" = "Reset All Accessibility Settings";
+"accessibility.settings.reset.all.hint" = "Double tap to reset all accessibility settings to default values";
+"accessibility.settings.detailed.progress" = "Detailed Progress Announcements";
+"accessibility.settings.detailed.progress.hint" = "When enabled, VoiceOver will announce detailed playback progress including time remaining";
+"accessibility.settings.announce.time.remaining" = "Announce Time Remaining";
+"accessibility.settings.announce.time.remaining.hint" = "When enabled, VoiceOver will regularly announce time remaining in the current audio";
+"accessibility.settings.voice.commands" = "Voice Commands";
+"accessibility.settings.voice.commands.hint" = "Configure custom voice commands for controlling playback";
+"accessibility.settings.simplified.interface" = "Simplified Interface";
+"accessibility.settings.simplified.interface.hint" = "When enabled, shows a cleaner interface with fewer options and larger controls";
+"accessibility.settings.confirmation.actions" = "Confirmation for Actions";
+"accessibility.settings.confirmation.level" = "Confirmation level for actions";
+"accessibility.settings.confirmation.level.hint" = "Choose when to show confirmation dialogs";
+"accessibility.settings.confirmation.never" = "Never";
+"accessibility.settings.confirmation.important" = "Important Only";
+"accessibility.settings.confirmation.all" = "All Actions";
+"accessibility.settings.test.undo" = "Test Undo Functionality";
+"accessibility.settings.test.undo.hint" = "Double tap to test the undo feature";
+"accessibility.settings.haptic.feedback" = "Haptic Feedback";
+"accessibility.settings.haptic.feedback.hint" = "When enabled, provides tactile feedback for button presses and interactions";
+"accessibility.settings.touch.target.size" = "Touch Target Size";
+"accessibility.settings.touch.target.size.hint" = "Adjust the size of buttons and touch targets";
+"accessibility.settings.switch.control" = "Switch Control Setup";
+"accessibility.settings.switch.control.hint" = "Configure settings for external switch control devices";
+"accessibility.settings.enabled" = "enabled";
+"accessibility.settings.disabled" = "disabled";
+"accessibility.settings.on" = "On";
+"accessibility.settings.off" = "Off";
+"accessibility.settings.detailed.enabled" = "Detailed announcements enabled";
+"accessibility.settings.detailed.disabled" = "Detailed announcements disabled";
+"accessibility.settings.time.remaining.enabled" = "Time remaining announcements enabled";
+"accessibility.settings.time.remaining.disabled" = "Time remaining announcements disabled";
+"accessibility.settings.simplified.enabled" = "Simplified interface enabled";
+"accessibility.settings.standard.enabled" = "Standard interface enabled";
+"accessibility.settings.haptic.enabled" = "Haptic feedback enabled";
+"accessibility.settings.haptic.disabled" = "Haptic feedback disabled";
+"accessibility.settings.reset.title" = "Settings Reset";
+"accessibility.settings.undo" = "Undo";
+"accessibility.settings.ok" = "OK";
+"accessibility.settings.restored" = "Settings restored";
+"accessibility.settings.reset.to.defaults" = "Accessibility settings reset to defaults";
+"accessibility.settings.undo.test.message" = "This is a test of the undo functionality. In a real scenario, this would allow you to undo recent changes.";
+"accessibility.settings.undo.test.triggered" = "Undo test triggered";
+"accessibility.settings.reset.message" = "All accessibility settings have been reset to their default values.";
+"accessibility.settings.customize.description" = "Customize how the audio player communicates with assistive technologies.";
+"accessibility.settings.cognitive.description" = "Features designed to support users with cognitive differences and reduce cognitive load.";
+"accessibility.settings.motor.description" = "Settings to support users with limited motor control or who use assistive devices.";
+"accessibility.settings.touch.targets" = "Touch Targets";
+"accessibility.settings.voice.commands.title" = "Voice Commands";
+"accessibility.settings.voice.commands.placeholder" = "Voice command settings would be implemented here";
+"accessibility.settings.switch.control.title" = "Switch Control";
+"accessibility.settings.switch.control.placeholder" = "Switch control settings would be implemented here";
+"accessibility.settings.switch.control.description" = "This would include options for configuring external switches and scanning behavior.";
+"accessibility.settings.minimum.touch.target" = "Minimum Touch Target Size";
+"accessibility.settings.points" = "%d points";
+"accessibility.settings.touch.target.drag.hint" = "Drag to adjust minimum touch target size";
 
 // Import messages
 "import.results.title" = "Import Results";
@@ -54,3 +245,4 @@
 "sleep.timer.selected" = "Selected %@";
 "sleep.timer.running" = "Sleep timer is running";
 "sleep.timer.time.remaining" = "Time remaining: %@";
+"sleep" = "Sleep";

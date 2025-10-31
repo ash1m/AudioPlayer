@@ -11,7 +11,7 @@ import UIKit
 struct FontManager {
     
     // MARK: - Font Names
-    static let customFontFamily = "InstrumentSerif"
+    static let customFontFamily = "systemFont"
     
     // MARK: - Font Weights
     enum FontWeight: String {
@@ -118,11 +118,11 @@ extension View {
     }
     
     // Convenience methods for common font combinations
-    func instrumentSerifRegular(size: FontManager.FontSize) -> some View {
+    func systemFontRegular(size: FontManager.FontSize) -> some View {
         self.font(FontManager.font(.regular, size: size))
     }
     
-    func instrumentSerifItalic(size: FontManager.FontSize) -> some View {
+    func systemFontItalic(size: FontManager.FontSize) -> some View {
         self.font(FontManager.font(.italic, size: size))
     }
     

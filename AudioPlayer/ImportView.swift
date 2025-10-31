@@ -28,16 +28,15 @@ struct ImportView: View {
                 
                 // Import Icon
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 80))
+                    .font(FontManager.font(.regular, size: 80))
                     .foregroundColor(.accentColor)
                 
                 VStack(spacing: 16) {
                     Text("Import Audio Files")
-                        .font(.title)
-                        .fontWeight(.semibold)
+                        .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 28))
                     
                     Text("Add audio files or folders to your library")
-                        .font(.body)
+                        .font(FontManager.font(.regular, size: 17))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
@@ -51,7 +50,7 @@ struct ImportView: View {
                         Image(systemName: "folder.badge.plus")
                         Text("Choose Files or Folders")
                     }
-                    .font(.headline)
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                     .foregroundColor(.white)
                     .padding(.horizontal, 30)
                     .padding(.vertical, 15)
@@ -65,7 +64,7 @@ struct ImportView: View {
                         ProgressView()
                             .scaleEffect(0.8)
                         Text(localizationManager.importProgressImporting)
-                            .font(.subheadline)
+                            .font(FontManager.font(.regular, size: 15))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -73,11 +72,11 @@ struct ImportView: View {
                 // Supported Formats
                 VStack(spacing: 8) {
                     Text("Supported Formats")
-                        .font(.headline)
+                        .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                         .foregroundColor(.secondary)
                     
                     Text("MP3 • M4A • M4B • AAC • WAV • FLAC • AIFF • CAF")
-                        .font(.subheadline)
+                        .font(FontManager.font(.regular, size: 15))
                         .foregroundColor(.secondary)
                 }
                 
@@ -198,7 +197,7 @@ struct ImportResultsDetailView: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text(result.fileName)
-                                    .font(.subheadline)
+                                    .font(FontManager.font(.regular, size: 15))
                                 Spacer()
                             }
                         }
@@ -213,14 +212,13 @@ struct ImportResultsDetailView: View {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.red)
                                     Text(result.fileName)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
+                                        .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
                                     Spacer()
                                 }
                                 
                                 if let failureReason = result.failureReason {
                                     Text(failureReason)
-                                        .font(.caption)
+                                        .font(FontManager.font(.regular, size: 12))
                                         .foregroundColor(.secondary)
                                         .padding(.leading, 24)
                                 }

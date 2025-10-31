@@ -747,7 +747,7 @@ class AudioFileManager: ObservableObject {
     
     // MARK: - Custom Artwork Management
     
-    func saveCustomArtwork(for audioFile: AudioFile, imageData: Data, context: NSManagedObjectContext) async throws {
+    func saveCustomArtwork(for audioFile: AudioFile, imageData: Data, context: NSManagedObjectContext, audioPlayerService: AudioPlayerService? = nil) async throws {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             throw FileManagerError.documentsDirectoryNotFound
         }
@@ -781,6 +781,10 @@ class AudioFileManager: ObservableObject {
             do {
                 try context.save()
                 print("✅ Successfully saved custom artwork for: \(audioFile.title ?? "Unknown")")
+                
+                // Notify AudioPlayerService if this is the currently playing file
+                audioPlayerService?.artworkDidUpdate(for: audioFile)
+                
             } catch {
                 print("❌ Failed to save context after updating artwork: \(error)")
                 // Clean up the file if Core Data save failed
@@ -816,7 +820,7 @@ class AudioFileManager: ObservableObject {
     
     // MARK: - Folder Artwork Management
     
-    func saveCustomArtwork(for folder: Folder, imageData: Data, context: NSManagedObjectContext) async throws {
+    func saveCustomArtwork(for folder: Folder, imageData: Data, context: NSManagedObjectContext, audioPlayerService: AudioPlayerService? = nil) async throws {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             throw FileManagerError.documentsDirectoryNotFound
         }
@@ -850,6 +854,13 @@ class AudioFileManager: ObservableObject {
             do {
                 try context.save()
                 print("✅ Successfully saved custom artwork for folder: \(folder.name)")
+                
+                // Notify AudioPlayerService if we're playing from this folder
+                if let currentFile = audioPlayerService?.currentAudioFile,
+                   currentFile.folder == folder {
+                    audioPlayerService?.artworkDidUpdate(for: currentFile)
+                }
+                
             } catch {
                 print("❌ Failed to save context after updating folder artwork: \(error)")
                 // Clean up the file if Core Data save failed

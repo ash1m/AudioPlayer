@@ -70,11 +70,17 @@ struct SlideUpPlayerView: View {
         .confirmationDialog("Playback Speed", isPresented: $isShowingSpeedOptions, titleVisibility: .visible) {
             speedDialogButtons
         }
-        .onChange(of: audioPlayerService.currentTime) {
-            throttleUIUpdates()
+        .onChange(of: audioPlayerService.currentTime) { oldValue, newValue in
+            // Only update if significant change (reduce excessive UI updates)
+            if abs(newValue - oldValue) >= 1.0 {
+                throttleUIUpdates()
+            }
         }
-        .onChange(of: audioPlayerService.folderCurrentTime) {
-            throttleUIUpdates()
+        .onChange(of: audioPlayerService.folderCurrentTime) { oldValue, newValue in
+            // Only update for folder progress if significant change
+            if abs(newValue - oldValue) >= 1.0 {
+                throttleUIUpdates()
+            }
         }
         .onChange(of: audioPlayerService.isPlaying) {
             updateCachedLabels()
@@ -237,7 +243,7 @@ struct SlideUpPlayerView: View {
                             case .failure(let error):
                                 let _ = print("🎨 LocalAsyncImage (slideup) failed to load artwork: \(error)")
                                 return AnyView(Image(systemName: "music.note")
-                                    .font(.system(size: 80))
+                                    .font(FontManager.font(.regular, size: 80))
                                     .foregroundColor(.gray))
                             case .empty:
                                 return AnyView(ProgressView()
@@ -246,7 +252,7 @@ struct SlideUpPlayerView: View {
                         }
                     } else {
                         Image(systemName: "music.note")
-                            .font(.system(size: 80))
+                            .font(FontManager.font(.regular, size: 80))
                             .foregroundColor(.gray)
                             .accessibilityHidden(true)
                     }
@@ -271,13 +277,13 @@ struct SlideUpPlayerView: View {
     private var bookDetailsOverlay: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(audioPlayerService.currentAudioFile?.title ?? "Title Long One Line Second")
-                .font(.system(size: 20, weight: .regular))
+                .font(FontManager.font(.regular, size: 20))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             Text(audioPlayerService.currentAudioFile?.artist ?? "Author Name Long One")
-                .font(.system(size: 17, weight: .regular))
+                .font(FontManager.font(.regular, size: 17))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -291,14 +297,14 @@ struct SlideUpPlayerView: View {
             // Timestamps (folder-aware)
             HStack {
                 Text(formatTime(displayCurrentTime))
-                    .font(.system(size: 17, weight: .regular))
+                    .font(FontManager.font(.regular, size: 17))
                     .foregroundColor(.white)
                     .accessibilityLabel("Current time \(formatTimeForAccessibility(displayCurrentTime))")
                 
                 Spacer()
                 
                 Text(formatTime(displayTotalDuration))
-                    .font(.system(size: 17, weight: .regular))
+                    .font(FontManager.font(.regular, size: 17))
                     .foregroundColor(.white)
                     .accessibilityLabel("Total duration \(formatTimeForAccessibility(displayTotalDuration))")
             }
@@ -314,10 +320,6 @@ struct SlideUpPlayerView: View {
     
     private var customTimelineSlider: some View {
         VStack(spacing: 0) {
-            // Separator line
-            Rectangle()
-                .fill(Color.white.opacity(0.2))
-                .frame(height: 1)
             
             // Slider area
             GeometryReader { geometry in
@@ -455,69 +457,7 @@ struct SlideUpPlayerView: View {
         cachedMiniPlayerValue = miniPlayerAccessibilityValue
         cachedTimelineValue = timelineAccessibilityValue
     }
-    
-    private var songInfoCard: some View {
-        Button(action: {
-            isShowingPlaylist = true
-        }) {
-            HStack(spacing: 8) {
-                // Playlist icon
-                Circle()
-                    .fill(Color(.systemGray2))
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Image(systemName: "text.alignleft")
-                            .font(.system(size: 16))
-                            .foregroundColor(.primary)
-                    )
-                
-                // Title and artist
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(audioPlayerService.currentAudioFile?.title ?? "Title Long One Line Second")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    
-                    Text(audioPlayerService.currentAudioFile?.artist ?? "Author Name Long One")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.black.opacity(0.3))
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityLabel("Open playlist")
-        .accessibilityHint("Double tap to view and manage your playlist")
-        .accessibilityAddTraits(.isButton)
-    }
-    
-    private var progressBarExpanded: some View {
-        VStack(spacing: 0) {
-            // Progress track
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.black.opacity(0.2))
-                    .frame(height: 6)
-                
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.blue)
-                    .frame(width: progressWidth, height: 6)
-            }
-            .onTapGesture { location in
-                let progress = location.x / 320 // Full width
-                let newTime = progress * audioPlayerService.duration
-                audioPlayerService.seek(to: max(0, min(newTime, audioPlayerService.duration)))
-            }
-        }
-        .frame(height: 44)
-    }
+
     
     private var progressBarMinimized: some View {
         ZStack(alignment: .leading) {
@@ -731,7 +671,7 @@ struct GlassMorphismButton: View {
     
     private var iconView: some View {
         Image(systemName: systemIcon)
-            .font(.system(size: iconSize, weight: .semibold))
+            .font(FontManager.fontWithSystemFallback(weight: .semibold, size: iconSize))
             .foregroundColor(.white.opacity(0.9))
             .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
     }
@@ -781,10 +721,10 @@ struct GlassButton: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Text(text)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
                     .foregroundColor(.white)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(FontManager.fontWithSystemFallback(weight: .medium, size: 12))
                     .foregroundColor(.white.opacity(0.8))
             }
             .padding(.horizontal, 20)

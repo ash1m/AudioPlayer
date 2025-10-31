@@ -111,19 +111,19 @@ struct AddFilesToPlaylistView: View {
             Spacer()
             
             Image(systemName: searchText.isEmpty ? "music.note.list" : "magnifyingglass")
-                .font(.system(size: 48))
+                .font(FontManager.font(.regular, size: 48))
                 .foregroundColor(.secondary)
                 .accessibilityHidden(true)
             
             Text(searchText.isEmpty ? "All files already added" : "No matching files")
-                .font(.headline)
+                .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .visualAccessibility(foreground: .secondary)
             
             if searchText.isEmpty {
                 Text("All your imported audio files are already in the playlist")
-                    .font(.body)
+                    .font(FontManager.font(.regular, size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AccessibleSpacing.expanded(for: dynamicTypeSize))
@@ -151,7 +151,7 @@ struct AddFilesToPlaylistView: View {
             } header: {
                 HStack {
                     Text("\(filteredAudioFiles.count) available files")
-                        .font(.subheadline)
+                        .font(FontManager.font(.regular, size: 15))
                         .foregroundColor(.secondary)
                     
                     Spacer()
@@ -160,13 +160,13 @@ struct AddFilesToPlaylistView: View {
                         Button("Select All") {
                             selectedFiles = Set(filteredAudioFiles)
                         }
-                        .font(.subheadline)
+                        .font(FontManager.font(.regular, size: 15))
                         .accessibilityLabel("Select all available files")
                     } else if !selectedFiles.isEmpty {
                         Button("Deselect All") {
                             selectedFiles.removeAll()
                         }
-                        .font(.subheadline)
+                        .font(FontManager.font(.regular, size: 15))
                         .accessibilityLabel("Deselect all files")
                     }
                 }
@@ -217,7 +217,7 @@ struct AddFileRow: View {
             HStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
                 // Selection indicator
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
+                    .font(FontManager.font(.regular, size: 22))
                     .foregroundColor(isSelected ? 
                         accessibilityManager.highContrastColor(base: .blue, highContrast: .primary) : 
                         .secondary
@@ -255,14 +255,14 @@ struct AddFileRow: View {
                 // Track info
                 VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
                     Text(audioFile.title ?? "Unknown Title")
-                        .font(.headline)
+                        .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .visualAccessibility()
                     
                     Text(audioFile.artist ?? "Unknown Artist")
-                        .font(.subheadline)
+                        .font(FontManager.font(.regular, size: 15))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -270,7 +270,7 @@ struct AddFileRow: View {
                     
                     // Original filename display
                     Text(audioFile.fileName)
-                        .font(.caption2)
+                        .font(FontManager.font(.regular, size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -280,7 +280,7 @@ struct AddFileRow: View {
                     
                     if audioFile.duration > 0 {
                         Text(TimeInterval(audioFile.duration).formattedDuration)
-                            .font(.caption)
+                            .font(FontManager.font(.regular, size: 12))
                             .foregroundColor(.secondary)
                             .visualAccessibility(foreground: .secondary)
                     }

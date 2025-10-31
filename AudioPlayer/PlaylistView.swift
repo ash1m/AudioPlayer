@@ -55,19 +55,18 @@ struct PlaylistView: View {
             
             VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
                 Image(systemName: "music.note.list")
-                    .font(.system(size: 64))
+                    .font(FontManager.font(.regular, size: 64))
                     .foregroundColor(.secondary)
                     .accessibilityHidden(true)
                 
                 Text("Build a Playlist")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 22))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                     .visualAccessibility()
                 
                 Text("Add imported files to create your custom playlist")
-                    .font(.body)
+                    .font(FontManager.font(.regular, size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AccessibleSpacing.expanded(for: dynamicTypeSize))
@@ -81,7 +80,7 @@ struct PlaylistView: View {
                     Image(systemName: "plus.circle.fill")
                         .accessibilityHidden(true)
                     Text("Add Files")
-                        .fontWeight(.semibold)
+                        .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                 }
                 .padding(.horizontal, AccessibleSpacing.expanded(for: dynamicTypeSize))
                 .padding(.vertical, AccessibleSpacing.standard(for: dynamicTypeSize))
@@ -161,13 +160,13 @@ struct PlaylistView: View {
         HStack {
             VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
                 Text("\(playlistManager.getPlaylistCount()) tracks")
-                    .font(.headline)
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                     .foregroundColor(.primary)
                     .visualAccessibility()
                     .accessibilityLabel(playlistStatsAccessibilityLabel)
                 
                 Text(TimeInterval(playlistManager.getPlaylistDuration()).formattedDuration)
-                    .font(.subheadline)
+                    .font(FontManager.font(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .visualAccessibility(foreground: .secondary)
                     .accessibilityLabel("Total duration: \(TimeInterval(playlistManager.getPlaylistDuration()).accessibleDuration)")
@@ -247,13 +246,13 @@ struct PlaylistItemRow: View {
             // Track info
             VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
                 Text(playlistItem.audioFile?.fileNameWithoutExtension ?? "Unknown File")
-                    .font(.headline)
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 17))
                     .foregroundColor(isCurrentlyPlaying ? .primary : .primary)
                     .lineLimit(1)
                     .visualAccessibility()
                 
                 Text(playlistItem.audioFile?.artist ?? "Unknown Artist")
-                    .font(.subheadline)
+                    .font(FontManager.font(.regular, size: 15))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .visualAccessibility(foreground: .secondary)
@@ -261,7 +260,7 @@ struct PlaylistItemRow: View {
                 // Original filename display
                 if let fileName = playlistItem.audioFile?.fileName {
                     Text(fileName)
-                        .font(.caption2)
+                        .font(FontManager.font(.regular, size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -271,7 +270,7 @@ struct PlaylistItemRow: View {
                 
                 if let duration = playlistItem.audioFile?.duration {
                     Text(TimeInterval(duration).formattedDuration)
-                        .font(.caption)
+                        .font(FontManager.font(.regular, size: 12))
                         .foregroundColor(.secondary)
                         .visualAccessibility(foreground: .secondary)
                 }
@@ -282,7 +281,7 @@ struct PlaylistItemRow: View {
             // Play/pause button
             Button(action: onPlay) {
                 Image(systemName: isCurrentlyPlaying && audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.largeTitle)
+                    .font(FontManager.font(.regular, size: 34))
                     .foregroundColor(accessibilityManager.highContrastColor(base: .blue, highContrast: .primary))
             }
             .accessibilityLabel(playButtonAccessibilityLabel)

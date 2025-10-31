@@ -17,10 +17,7 @@ class SettingsManager: ObservableObject {
         case german = "de"
         case italian = "it"
         case portuguese = "pt"
-        case russian = "ru"
         case japanese = "ja"
-        case korean = "ko"
-        case chinese = "zh"
         
         var displayName: String {
             switch self {
@@ -30,10 +27,7 @@ class SettingsManager: ObservableObject {
             case .german: return "Deutsch"
             case .italian: return "Italiano"
             case .portuguese: return "Português"
-            case .russian: return "Русский"
             case .japanese: return "日本語"
-            case .korean: return "한국어"
-            case .chinese: return "中文"
             }
         }
     }

@@ -55,7 +55,7 @@ struct FolderGridCard: View {
                                 let _ = print("🎨 Folder artwork URL: \(artworkURL.path)")
                                 let _ = print("🎨 File exists: \(FileManager.default.fileExists(atPath: artworkURL.path))")
                                 return AnyView(Image(systemName: "play.rectangle.fill")
-                                    .font(.system(size: artworkSize * 0.4))
+                                    .font(FontManager.font(.regular, size: artworkSize * 0.4))
                                     .foregroundColor(.white)
                                     .frame(width: artworkSize, height: artworkSize)
                                     .accessibilityHidden(true))
@@ -69,7 +69,7 @@ struct FolderGridCard: View {
                     } else {
                         // Default folder/playlist icon
                         Image(systemName: "play.rectangle.fill")
-                            .font(.system(size: artworkSize * 0.4))
+                            .font(FontManager.font(.regular, size: artworkSize * 0.4))
                             .foregroundColor(.white)
                             .frame(width: artworkSize, height: artworkSize)
                             .accessibilityHidden(true)
@@ -81,8 +81,7 @@ struct FolderGridCard: View {
                             HStack {
                                 Spacer()
                                 Text("\(folder.fileCount)")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
+                                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 12))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
@@ -102,8 +101,7 @@ struct FolderGridCard: View {
                             HStack {
                                 Spacer()
                                 Text(TimeInterval(totalDuration).formattedDuration)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
+                                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 12))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
@@ -135,8 +133,7 @@ struct FolderGridCard: View {
                 // Text content area styled like audio file
                 VStack(alignment: .leading, spacing: 4) {
                     Text(folder.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -145,7 +142,7 @@ struct FolderGridCard: View {
                         .visualAccessibility()
                     
                     Text("\(folder.fileCount) track\(folder.fileCount == 1 ? "" : "s")")
-                        .font(.caption)
+                        .font(FontManager.font(.regular, size: 12))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -373,7 +370,7 @@ struct FolderListCard: View {
                     case .failure(let error):
                         let _ = print("🎨 LocalAsyncImage failed to load folder artwork for \(folder.name): \(error)")
                         return AnyView(Image(systemName: "play.rectangle.fill")
-                            .font(.title2)
+                            .font(FontManager.font(.regular, size: 22))
                             .foregroundColor(.white))
                     case .empty:
                         return AnyView(ProgressView()
@@ -383,7 +380,7 @@ struct FolderListCard: View {
                 }
             } else {
                 Image(systemName: "play.rectangle.fill")
-                    .font(.title2)
+                    .font(FontManager.font(.regular, size: 22))
                     .foregroundColor(.white)
             }
             
@@ -393,8 +390,7 @@ struct FolderListCard: View {
                     HStack {
                         Spacer()
                         Text("\(folder.fileCount)")
-                            .font(.caption2)
-                            .fontWeight(.semibold)
+                            .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 11))
                             .foregroundColor(.white)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
@@ -436,7 +432,7 @@ struct FolderListCard: View {
             // Show folder path if it's not root
             if folder.path != "/" && !folder.path.isEmpty {
                 Text(folder.path)
-                    .font(.caption2)
+                    .font(FontManager.font(.regular, size: 11))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -447,7 +443,7 @@ struct FolderListCard: View {
     
     private var chevronView: some View {
         Image(systemName: "chevron.right")
-            .font(.caption)
+            .font(FontManager.font(.regular, size: 12))
             .foregroundColor(.secondary)
             .padding(.trailing, 4)
     }

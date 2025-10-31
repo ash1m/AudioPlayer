@@ -59,15 +59,14 @@ struct SettingsView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(localizationManager.localizedString("settings.supported.formats"))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
                         
                         Text(localizationManager.localizedString("settings.supported.formats.list"))
-                            .font(.caption)
+                            .font(FontManager.font(.regular, size: 12))
                             .foregroundColor(.secondary)
                         
                         Text(localizationManager.localizedString("settings.import.description"))
-                            .font(.footnote)
+                            .font(FontManager.font(.regular, size: 13))
                             .foregroundColor(.secondary)
                             .padding(.top, 4)
                     }

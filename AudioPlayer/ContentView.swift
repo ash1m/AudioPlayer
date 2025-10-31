@@ -10,15 +10,16 @@ import CoreData
 
 enum AppView {
     case library
-    case player
+    // ORPHANED: case player - no longer used since player is now an overlay
+    // case player
     case settings
 }
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
-    @StateObject private var audioPlayerService = AudioPlayerService()
-    @StateObject private var audioFileManager = AudioFileManager()
+    @EnvironmentObject var audioPlayerService: AudioPlayerService
+    @EnvironmentObject var audioFileManager: AudioFileManager
     @StateObject private var settingsManager = SettingsManager()
     @StateObject private var playlistManager: PlaylistManager
     @EnvironmentObject var accessibilityManager: AccessibilityManager
@@ -41,12 +42,15 @@ struct ContentView: View {
                         navigateToSettings: { currentView = .settings }
                     )
                     
+                // ORPHANED CODE: .player case is no longer used since player is now an overlay
+                /*
                 case .player:
                     // This case is no longer used since player is now an overlay
                     LibraryGridView(
                         navigateToPlayer: { },
                         navigateToSettings: { currentView = .settings }
                     )
+                */
                     
                 case .settings:
                     NavigationStack {
@@ -69,8 +73,6 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .environmentObject(audioPlayerService)
-        .environmentObject(audioFileManager)
         .environmentObject(settingsManager)
         .environmentObject(playlistManager)
         .environmentObject(accessibilityManager)

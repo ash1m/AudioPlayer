@@ -38,7 +38,7 @@ struct SleepTimerView: View {
                 // Header
                 VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
                     Image(systemName: "moon.zzz.fill")
-                        .font(.system(size: dynamicTypeSize.isLargeSize ? 48 : 60))
+                        .font(FontManager.font(.regular, size: dynamicTypeSize.isLargeSize ? 48 : 60))
                         .foregroundColor(.accentColor)
                         .accessibilityHidden(true)
                         .highContrastSupport(normal: .accentColor, highContrast: .primary)
@@ -211,7 +211,7 @@ struct SleepTimerView: View {
                 
                 if isSelected(duration) {
                     Image(systemName: "checkmark")
-                        .font(.body)
+                        .font(FontManager.font(.regular, size: 17))
                         .foregroundColor(.white)
                 }
             }

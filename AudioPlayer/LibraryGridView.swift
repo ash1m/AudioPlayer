@@ -275,7 +275,7 @@ struct LibraryGridView: View {
         
         Task {
             do {
-                try await audioFileManager.saveCustomArtwork(for: audioFile, imageData: imageData, context: viewContext)
+                try await audioFileManager.saveCustomArtwork(for: audioFile, imageData: imageData, context: viewContext, audioPlayerService: audioPlayerService)
                 
                 await MainActor.run {
                     // Trigger a refresh to update the UI
@@ -327,7 +327,7 @@ struct LibraryGridView: View {
         
         Task {
             do {
-                try await audioFileManager.saveCustomArtwork(for: folder, imageData: imageData, context: viewContext)
+                try await audioFileManager.saveCustomArtwork(for: folder, imageData: imageData, context: viewContext, audioPlayerService: audioPlayerService)
                 
                 await MainActor.run {
                     // Trigger a refresh to update the UI
@@ -416,8 +416,7 @@ struct LibraryGridView: View {
                 HStack {
                     // Library title on the left
                     Text("Library")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(FontManager.fontWithSystemFallback(weight: .bold, size: FontManager.FontSize.largeTitle))
                         .foregroundColor(.primary)
                     
                     Spacer()
@@ -478,7 +477,7 @@ struct LibraryGridView: View {
         ContentUnavailableView(
             folderNavigationManager.isInFolder ? "Empty Folder" : "No Content",
             systemImage: folderNavigationManager.isInFolder ? "folder" : "music.note.list",
-            description: Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Tap the + button to import audio files or folders")
+            description: Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Tap the 'Add' button to import audio files or folders")
         )
         .accessibilityLabel(folderNavigationManager.isInFolder ? "Folder is empty" : "Library is empty")
         .accessibilityHint("Import audio files using the add button")
@@ -605,12 +604,10 @@ struct LibraryGridView: View {
         } label: {
             HStack(spacing: 4) {
                 Text("Sort By")
-                    .font(.body)
-                    .fontWeight(.semibold)
+                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: FontManager.FontSize.body))
                     .foregroundColor(.blue)
                 Image(systemName: "chevron.down")
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(FontManager.fontWithSystemFallback(weight: .medium, size: FontManager.FontSize.caption))
                     .foregroundColor(.blue)
                     .accessibilityHidden(true)
             }
@@ -773,7 +770,7 @@ struct AudioFileGridCard: View {
                                 let _ = print("🎨 Artwork URL: \(artworkURL.path)")
                                 let _ = print("🎨 File exists: \(FileManager.default.fileExists(atPath: artworkURL.path))")
                                 return AnyView(Image(systemName: "music.note")
-                                    .font(.system(size: artworkSize * 0.4))
+                                    .font(FontManager.font(.regular, size: artworkSize * 0.4))
                                     .foregroundColor(.white)
                                     .frame(width: artworkSize, height: artworkSize)
                                     .accessibilityHidden(true))
@@ -786,7 +783,7 @@ struct AudioFileGridCard: View {
                         }
                     } else {
                         Image(systemName: "music.note")
-                            .font(.system(size: artworkSize * 0.4))
+                            .font(FontManager.font(.regular, size: artworkSize * 0.4))
                             .foregroundColor(.white)
                             .frame(width: artworkSize, height: artworkSize)
                             .accessibilityHidden(true)
@@ -798,7 +795,7 @@ struct AudioFileGridCard: View {
                             HStack {
                                 Spacer()
                                 Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(.title)
+                                    .font(FontManager.font(.regular, size: FontManager.FontSize.title))
                                     .foregroundColor(.white)
                                     .background(Circle().fill(.black.opacity(0.8)))
                                     .padding(8)
@@ -817,8 +814,7 @@ struct AudioFileGridCard: View {
                             HStack {
                                 Spacer()
                                 Text(TimeInterval(audioFile.duration).formattedDuration)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
+                                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: FontManager.FontSize.caption))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
@@ -849,8 +845,7 @@ struct AudioFileGridCard: View {
                 // Text content area with improved typography
                 VStack(alignment: .leading, spacing: 4) {
                     Text(audioFile.originalFileNameWithoutExtension)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(FontManager.fontWithSystemFallback(weight: .medium, size: FontManager.FontSize.subheadline))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -859,7 +854,7 @@ struct AudioFileGridCard: View {
                         .visualAccessibility()
                     
                     Text(audioFile.artist ?? "Unknown Artist")
-                        .font(.caption)
+                        .font(FontManager.font(.regular, size: FontManager.FontSize.caption))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -1035,7 +1030,7 @@ struct AudioFileListCard: View {
                                 case .failure(let error):
                                     let _ = print("🎨 LocalAsyncImage (list) failed to load artwork for \(audioFile.title ?? "Unknown"): \(error)")
                                     return AnyView(Image(systemName: "music.note")
-                                        .font(.title2)
+                                        .font(FontManager.font(.regular, size: 22))
                                         .foregroundColor(.white)
                                         .accessibilityHidden(true))
                                 case .empty:
@@ -1046,7 +1041,7 @@ struct AudioFileListCard: View {
                             }
                         } else {
                             Image(systemName: "music.note")
-                                .font(.title2)
+                                .font(FontManager.font(.regular, size: 22))
                                 .foregroundColor(.white)
                                 .accessibilityHidden(true)
                         }
@@ -1057,7 +1052,7 @@ struct AudioFileListCard: View {
                                 HStack {
                                     Spacer()
                                     Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                        .font(.caption)
+                                        .font(FontManager.font(.regular, size: 12))
                                         .foregroundColor(.white)
                                         .background(Circle().fill(.black.opacity(0.7)).frame(width: 16, height: 16))
                                         .accessibilityLabel(audioPlayerService.isPlaying ? "Currently playing" : "Currently paused")
@@ -1115,7 +1110,7 @@ struct AudioFileListCard: View {
                         HStack {
                             Spacer()
                             Text(TimeInterval(audioFile.duration).formattedDuration)
-                                .font(.caption2)
+                                .font(FontManager.font(.regular, size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }

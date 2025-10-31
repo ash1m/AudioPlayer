@@ -25,8 +25,11 @@ class AudioPlayerService: NSObject, ObservableObject {
     
     // MARK: - Folder Progress Properties
     @Published var isPlayingFromFolder = false
-    @Published var folderTotalDuration: Double = 0
-    @Published var folderCurrentTime: Double = 0
+    @Published var folderCurrentTime: Double = 0.0
+    @Published var folderTotalDuration: Double = 0.0
+    
+    // Artwork versioning for UI refresh
+    @Published var artworkVersion: Int = 0
     
     // MARK: - Private Properties
     private var player: AVPlayer?
@@ -105,14 +108,24 @@ class AudioPlayerService: NSObject, ObservableObject {
     
     @objc private func appDidEnterBackground() {
         isInBackground = true
-        // Reduce update frequency in background for better battery life
-        // Background/foreground handled by observer
+        print("📱 App entered background - optimizing performance")
+        
+        // Significantly reduce update frequency in background to save battery
+        if timeObserver != nil {
+            removeTimeObserver()
+            setupBackgroundTimeObserver()
+        }
     }
     
     @objc private func appWillEnterForeground() {
         isInBackground = false
+        print("📱 App entered foreground - resuming normal updates")
+        
         // Resume normal update frequency when returning to foreground
-        // Background/foreground handled by observer
+        if timeObserver != nil {
+            removeTimeObserver()
+            setupTimeObserver()
+        }
     }
     
     @objc private func handleAudioSessionInterruption(notification: Notification) {
@@ -195,20 +208,29 @@ class AudioPlayerService: NSObject, ObservableObject {
         do {
             let audioSession = AVAudioSession.sharedInstance()
             
-            print("🔧 Setting up audio session...")
+            print("🔧 Setting up audio session for media controls...")
             
-            // Configure audio session for background playback with media playback mode
-            try audioSession.setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP, .allowAirPlay])
-            print("✅ Audio session category set to .playback")
+            // CRITICAL: Use specific options required for Control Center
+            let sessionOptions: AVAudioSession.CategoryOptions = [
+                .allowBluetoothA2DP,
+                .allowAirPlay,
+                .defaultToSpeaker,
+                .mixWithOthers
+            ]
             
-            // Set the audio session active - this is crucial for Control Center controls
+            // Use .default mode instead of .spokenAudio for better Control Center integration
+            try audioSession.setCategory(.playback, mode: .default, options: sessionOptions)
+            print("✅ Audio session category set to .playback with Control Center options")
+            
+            // CRITICAL: Set the audio session active - this is required for Control Center
             try audioSession.setActive(true, options: [])
             print("✅ Audio session activated successfully")
             
-            // Configure remote transport controls AFTER audio session is active
-            setupRemoteTransportControls()
-            
-            print("✅ Audio session and remote controls configured successfully")
+            // Small delay to ensure audio session is fully established
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.setupRemoteTransportControls()
+                print("✅ Audio session and remote controls configured with delay")
+            }
             
         } catch let error as NSError {
             print("❌ Failed to setup audio session: \(error.localizedDescription)")
@@ -216,6 +238,26 @@ class AudioPlayerService: NSObject, ObservableObject {
             if let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError {
                 print("   Underlying error: \(underlyingError.localizedDescription)")
             }
+            
+            // Try alternative setup on failure
+            setupFallbackAudioSession()
+        }
+    }
+    
+    private func setupFallbackAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            print("🔧 Attempting fallback audio session setup...")
+            
+            // Minimal configuration that should work
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+            
+            print("✅ Fallback audio session activated")
+            setupRemoteTransportControls()
+            
+        } catch {
+            print("❌ Fallback audio session setup also failed: \(error.localizedDescription)")
         }
     }
     
@@ -224,23 +266,22 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         print("🎵 Setting up remote transport controls...")
         
-        // Clear any existing targets to avoid duplicates
-        commandCenter.playCommand.removeTarget(nil)
-        commandCenter.pauseCommand.removeTarget(nil)
-        commandCenter.skipForwardCommand.removeTarget(nil)
-        commandCenter.skipBackwardCommand.removeTarget(nil)
-        commandCenter.nextTrackCommand.removeTarget(nil)
-        commandCenter.previousTrackCommand.removeTarget(nil)
-        commandCenter.changePlaybackPositionCommand.removeTarget(nil)
+        // Clear existing targets properly by storing references
+        let commands = [
+            commandCenter.playCommand,
+            commandCenter.pauseCommand,
+            commandCenter.skipForwardCommand,
+            commandCenter.skipBackwardCommand,
+            commandCenter.nextTrackCommand,
+            commandCenter.previousTrackCommand,
+            commandCenter.changePlaybackPositionCommand
+        ]
         
-        // Disable all commands first
-        commandCenter.playCommand.isEnabled = false
-        commandCenter.pauseCommand.isEnabled = false
-        commandCenter.skipForwardCommand.isEnabled = false
-        commandCenter.skipBackwardCommand.isEnabled = false
-        commandCenter.nextTrackCommand.isEnabled = false
-        commandCenter.previousTrackCommand.isEnabled = false
-        commandCenter.changePlaybackPositionCommand.isEnabled = false
+        // Clear all existing targets
+        commands.forEach { command in
+            command.removeTarget(self)
+            command.isEnabled = false
+        }
         
         // Play command
         commandCenter.playCommand.isEnabled = true
@@ -339,14 +380,9 @@ class AudioPlayerService: NSObject, ObservableObject {
         print("✅ All remote transport controls configured")
         print("✅ Control Center and Lock Screen controls should now be available")
         
-        // Force Now Playing info to be set initially (even with empty info) to activate controls
-        let initialInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: "AudioPlayer",
-            MPMediaItemPropertyArtist: "Ready to Play",
-            MPNowPlayingInfoPropertyPlaybackRate: 0.0
-        ]
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = initialInfo
-        print("✅ Initial Now Playing info set to activate Control Center")
+        // Don't set initial Now Playing info here - let it be set when audio actually loads
+        // This prevents conflicts with actual playback information
+        print("✅ Remote command center ready for Control Center activation")
     }
     
     // MARK: - Ensure Audio Session Active
@@ -355,22 +391,24 @@ class AudioPlayerService: NSObject, ObservableObject {
         do {
             let audioSession = AVAudioSession.sharedInstance()
             
-            // Re-activate the audio session if needed
-            if !audioSession.isOtherAudioPlaying {
+            print("🔍 Ensuring audio session is active for Control Center...")
+            
+            // Check if audio session is active and reactivate if needed
+            if audioSession.category != .playback || !audioSession.isOtherAudioPlaying {
                 try audioSession.setActive(true, options: [])
-                print("✅ Audio session re-activated")
+                print("✅ Audio session re-activated for playback")
             }
             
-            // Ensure Now Playing info is set (required for Control Center to appear)
-            if MPNowPlayingInfoCenter.default().nowPlayingInfo == nil {
-                setupRemoteTransportControls()
-                print("✅ Remote controls re-initialized")
-            }
+            // Don't re-setup remote controls unnecessarily - they should persist
+            // Just ensure we have proper Now Playing info when we actually start playing
+            print("✅ Audio session ensured active")
             
         } catch {
-            print("⚠️ Warning: Could not re-activate audio session: \(error.localizedDescription)")
-            // Try to set up the audio session again
-            setupAudioSession()
+            print("⚠️ Warning: Could not ensure audio session active: \(error.localizedDescription)")
+            // As a last resort, try full re-setup
+            DispatchQueue.main.async { [weak self] in
+                self?.setupAudioSession()
+            }
         }
     }
     
@@ -397,16 +435,16 @@ class AudioPlayerService: NSObject, ObservableObject {
         var displayAlbumTitle: String
         
         if isPlayingFromFolder, let folder = currentFolder, folderTotalDuration > 0 {
-            // Use folder progress for Control Center
-            displayDuration = folderTotalDuration
-            displayElapsedTime = folderCurrentTime
-            displayAlbumTitle = folder.name
+            // Use folder progress for Control Center - validate values
+            displayDuration = max(folderTotalDuration, 0.1)  // Ensure positive duration
+            displayElapsedTime = max(min(folderCurrentTime, folderTotalDuration), 0.0)  // Clamp within bounds
+            displayAlbumTitle = folder.name.isEmpty ? "Folder" : folder.name
             print("📁 Using folder progress in Now Playing - \(Int(displayElapsedTime))/\(Int(displayDuration))")
         } else {
-            // Use individual file progress
-            displayDuration = max(duration, 0.1)
-            displayElapsedTime = max(actualCurrentTime, 0.0)
-            displayAlbumTitle = audioFile.album ?? "AudioPlayer"
+            // Use individual file progress - validate values
+            displayDuration = max(duration, 0.1)  // Ensure positive duration
+            displayElapsedTime = max(min(actualCurrentTime, displayDuration), 0.0)  // Clamp within bounds
+            displayAlbumTitle = audioFile.album?.isEmpty == false ? audioFile.album! : "AudioPlayer"
         }
         
         // Use more standard media type
@@ -466,7 +504,27 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Playback Control
+    // MARK: - Artwork Update Notification
+    
+    func artworkDidUpdate(for audioFile: AudioFile) {
+        // Only update if this is the currently playing file
+        guard let currentFile = currentAudioFile, 
+              currentFile.id == audioFile.id else {
+            print("🖼️ Artwork updated for non-current file, not updating Now Playing info")
+            return
+        }
+        
+        print("🖼️ Artwork updated for current file, updating Now Playing info and UI")
+        DispatchQueue.main.async { [weak self] in
+            // Force UI refresh by incrementing artwork version
+            self?.artworkVersion += 1
+            
+            // Update Control Center and lock screen
+            self?.updateNowPlayingInfo()
+        }
+    }
+    
+    // MARK: - Playbook Control
     
     func loadAudioFile(_ audioFile: AudioFile, context: NSManagedObjectContext? = nil) {
         self.viewContext = context
@@ -510,22 +568,13 @@ class AudioPlayerService: NSObject, ObservableObject {
             let targetTime = CMTime(seconds: audioFile.currentPosition, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
             player?.seek(to: targetTime)
         }
-            
-            // CRITICAL: Force Now Playing info immediately when loading a new track
-            DispatchQueue.main.async { [weak self] in
-                self?.updateNowPlayingInfo()
-                
-                // Also force a basic Now Playing entry to ensure Control Center activation
-                let forceInfo: [String: Any] = [
-                    MPMediaItemPropertyTitle: audioFile.title ?? audioFile.fileName,
-                    MPMediaItemPropertyArtist: audioFile.artist ?? "Unknown Artist",
-                    MPMediaItemPropertyPlaybackDuration: self?.duration ?? 1.0,
-                    MPNowPlayingInfoPropertyElapsedPlaybackTime: 0.0,
-                    MPNowPlayingInfoPropertyPlaybackRate: 0.0
-                ]
-                MPNowPlayingInfoCenter.default().nowPlayingInfo = forceInfo
-                print("⚡ FORCE SET Now Playing info for Control Center activation")
-            }
+        
+        // Set initial Now Playing info when file is loaded (but don't force duplicate info)
+        DispatchQueue.main.async { [weak self] in
+            // Only update Now Playing info once, properly
+            self?.updateNowPlayingInfo()
+            print("📱 Now Playing info set for loaded track")
+        }
         
         print("Successfully loaded audio file: \(audioFile.fileName)")
     }
@@ -610,11 +659,25 @@ class AudioPlayerService: NSObject, ObservableObject {
     private func setupTimeObserver() {
         removeTimeObserver()
         
-        let timeInterval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        // Optimized: Use 1 second intervals instead of 0.5s (50% reduction in updates)
+        let timeInterval = CMTime(seconds: 1.0, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         
         timeObserver = player?.addPeriodicTimeObserver(forInterval: timeInterval, queue: .main) { [weak self] time in
             self?.updateCurrentTime(time)
         }
+        print("⏱️ Time observer setup with 1.0s interval (foreground)")
+    }
+    
+    private func setupBackgroundTimeObserver() {
+        removeTimeObserver()
+        
+        // Background: Much slower updates (5 seconds) to save battery
+        let timeInterval = CMTime(seconds: 5.0, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        
+        timeObserver = player?.addPeriodicTimeObserver(forInterval: timeInterval, queue: .main) { [weak self] time in
+            self?.updateCurrentTime(time)
+        }
+        print("⏱️ Background time observer setup with 5.0s interval")
     }
     
     private func removeTimeObserver() {
@@ -629,32 +692,42 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         let newTime = CMTimeGetSeconds(time)
         
+        // Optimize: Avoid expensive state checks when not playing
+        guard isPlaying else { return }
+        
         // Check if our internal state matches the actual player state
         let playerIsActuallyPlaying = player.rate != 0 && player.error == nil
         
-        if isPlaying && !playerIsActuallyPlaying {
+        if !playerIsActuallyPlaying {
             // Our state says playing, but player is actually paused
-            DispatchQueue.main.async { [weak self] in
-                self?.isPlaying = false
-                self?.saveCurrentPosition()
-                print("🎵 Detected state mismatch - player was externally paused")
-            }
+            isPlaying = false
+            saveCurrentPosition()
             return
         }
         
-        guard isPlaying else { return }
+        // Throttle updates: Only update if significant time change (0.5s threshold)
+        if abs(newTime - currentTime) < 0.5 {
+            return
+        }
         
         // Update current time
         currentTime = newTime
         
-        // Update folder progress if playing from folder
-        updateFolderProgress()
+        // Update folder progress if playing from folder (less frequently in background)
+        if !isInBackground || Int(newTime) % 5 == 0 {
+            updateFolderProgress()
+        }
         
-        // Update Now Playing info every 2 seconds for better Control Center responsiveness
-        if abs(newTime - lastNowPlayingUpdateTime) >= 2.0 {
+        // Update Now Playing info less frequently in background
+        let nowPlayingInterval: Double = isInBackground ? 10.0 : 5.0
+        if abs(newTime - lastNowPlayingUpdateTime) >= nowPlayingInterval {
             updateNowPlayingInfo()
             lastNowPlayingUpdateTime = newTime
-            print("🔄 Periodic Now Playing update - elapsed time: \(newTime)")
+            
+            // Reduce logging in background
+            if !isInBackground {
+                print("🔄 Now Playing update - \(Int(newTime))s")
+            }
         }
     }
     
@@ -665,19 +738,32 @@ class AudioPlayerService: NSObject, ObservableObject {
               let folder = currentFolder,
               let currentFile = currentAudioFile else {
             // Not playing from folder, reset folder progress
-            folderTotalDuration = 0
-            folderCurrentTime = 0
+            if folderTotalDuration != 0 || folderCurrentTime != 0 {
+                folderTotalDuration = 0
+                folderCurrentTime = 0
+            }
             return
         }
         
-        // Update folder total duration
-        folderTotalDuration = folder.totalDuration
+        // Cache folder total duration to avoid repeated calculations
+        let newTotalDuration = folder.totalDuration
+        if abs(folderTotalDuration - newTotalDuration) > 1.0 {
+            folderTotalDuration = newTotalDuration
+        }
         
-        // Update current folder position
+        // Update current folder position (throttle expensive calculations)
         let actualCurrentTime = player?.currentTime().seconds ?? currentTime
-        folderCurrentTime = folder.getCurrentFolderPosition(currentFile: currentFile, currentTime: actualCurrentTime)
+        let newFolderCurrentTime = folder.getCurrentFolderPosition(currentFile: currentFile, currentTime: actualCurrentTime)
         
-        print("📁 Folder progress: \(Int(folderCurrentTime))s / \(Int(folderTotalDuration))s")
+        // Only update if significant change (reduce @Published updates)
+        if abs(folderCurrentTime - newFolderCurrentTime) > 0.5 {
+            folderCurrentTime = newFolderCurrentTime
+        }
+        
+        // Reduce logging frequency
+        if !isInBackground && Int(newFolderCurrentTime) % 10 == 0 {
+            print("📁 Folder: \(Int(folderCurrentTime))s / \(Int(folderTotalDuration))s")
+        }
     }
     
     // MARK: - Player Item Observers

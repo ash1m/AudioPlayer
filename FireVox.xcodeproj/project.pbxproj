@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		9A87FC572E77ED5A00B401B9 /* AudioPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9A87FC692E77ED5D00B401B9 /* AudioPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AudioPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9A87FC732E77ED5D00B401B9 /* AudioPlayerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AudioPlayerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A87FC572E77ED5A00B401B9 /* FireVox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FireVox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A87FC692E77ED5D00B401B9 /* FireVoxTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FireVoxTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A87FC732E77ED5D00B401B9 /* FireVoxUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FireVoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,9 +85,9 @@
 		9A87FC582E77ED5A00B401B9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9A87FC572E77ED5A00B401B9 /* AudioPlayer.app */,
-				9A87FC692E77ED5D00B401B9 /* AudioPlayerTests.xctest */,
-				9A87FC732E77ED5D00B401B9 /* AudioPlayerUITests.xctest */,
+				9A87FC572E77ED5A00B401B9 /* FireVox.app */,
+				9A87FC692E77ED5D00B401B9 /* FireVoxTests.xctest */,
+				9A87FC732E77ED5D00B401B9 /* FireVoxUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9A87FC562E77ED5A00B401B9 /* AudioPlayer */ = {
+		9A87FC562E77ED5A00B401B9 /* FireVox */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9A87FC7D2E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayer" */;
+			buildConfigurationList = 9A87FC7D2E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVox" */;
 			buildPhases = (
 				9A87FC532E77ED5A00B401B9 /* Sources */,
 				9A87FC542E77ED5A00B401B9 /* Frameworks */,
@@ -110,16 +110,16 @@
 			fileSystemSynchronizedGroups = (
 				9A87FC592E77ED5A00B401B9 /* AudioPlayer */,
 			);
-			name = AudioPlayer;
+			name = FireVox;
 			packageProductDependencies = (
 			);
 			productName = AudioPlayer;
-			productReference = 9A87FC572E77ED5A00B401B9 /* AudioPlayer.app */;
+			productReference = 9A87FC572E77ED5A00B401B9 /* FireVox.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9A87FC682E77ED5D00B401B9 /* AudioPlayerTests */ = {
+		9A87FC682E77ED5D00B401B9 /* FireVoxTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9A87FC802E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayerTests" */;
+			buildConfigurationList = 9A87FC802E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVoxTests" */;
 			buildPhases = (
 				9A87FC652E77ED5D00B401B9 /* Sources */,
 				9A87FC662E77ED5D00B401B9 /* Frameworks */,
@@ -133,16 +133,16 @@
 			fileSystemSynchronizedGroups = (
 				9A87FC6C2E77ED5D00B401B9 /* AudioPlayerTests */,
 			);
-			name = AudioPlayerTests;
+			name = FireVoxTests;
 			packageProductDependencies = (
 			);
 			productName = AudioPlayerTests;
-			productReference = 9A87FC692E77ED5D00B401B9 /* AudioPlayerTests.xctest */;
+			productReference = 9A87FC692E77ED5D00B401B9 /* FireVoxTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		9A87FC722E77ED5D00B401B9 /* AudioPlayerUITests */ = {
+		9A87FC722E77ED5D00B401B9 /* FireVoxUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9A87FC832E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayerUITests" */;
+			buildConfigurationList = 9A87FC832E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVoxUITests" */;
 			buildPhases = (
 				9A87FC6F2E77ED5D00B401B9 /* Sources */,
 				9A87FC702E77ED5D00B401B9 /* Frameworks */,
@@ -156,11 +156,11 @@
 			fileSystemSynchronizedGroups = (
 				9A87FC762E77ED5D00B401B9 /* AudioPlayerUITests */,
 			);
-			name = AudioPlayerUITests;
+			name = FireVoxUITests;
 			packageProductDependencies = (
 			);
 			productName = AudioPlayerUITests;
-			productReference = 9A87FC732E77ED5D00B401B9 /* AudioPlayerUITests.xctest */;
+			productReference = 9A87FC732E77ED5D00B401B9 /* FireVoxUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,13 +186,18 @@
 					};
 				};
 			};
-			buildConfigurationList = 9A87FC522E77ED5A00B401B9 /* Build configuration list for PBXProject "AudioPlayer" */;
+			buildConfigurationList = 9A87FC522E77ED5A00B401B9 /* Build configuration list for PBXProject "FireVox" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 				es,
+				fr,
+				de,
+				it,
+				pt,
+				ja,
 			);
 			mainGroup = 9A87FC4E2E77ED5A00B401B9;
 			minimizedProjectReferenceProxies = 1;
@@ -201,9 +206,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9A87FC562E77ED5A00B401B9 /* AudioPlayer */,
-				9A87FC682E77ED5D00B401B9 /* AudioPlayerTests */,
-				9A87FC722E77ED5D00B401B9 /* AudioPlayerUITests */,
+				9A87FC562E77ED5A00B401B9 /* FireVox */,
+				9A87FC682E77ED5D00B401B9 /* FireVoxTests */,
+				9A87FC722E77ED5D00B401B9 /* FireVoxUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -259,12 +264,12 @@
 /* Begin PBXTargetDependency section */
 		9A87FC6B2E77ED5D00B401B9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9A87FC562E77ED5A00B401B9 /* AudioPlayer */;
+			target = 9A87FC562E77ED5A00B401B9 /* FireVox */;
 			targetProxy = 9A87FC6A2E77ED5D00B401B9 /* PBXContainerItemProxy */;
 		};
 		9A87FC752E77ED5D00B401B9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9A87FC562E77ED5A00B401B9 /* AudioPlayer */;
+			target = 9A87FC562E77ED5A00B401B9 /* FireVox */;
 			targetProxy = 9A87FC742E77ED5D00B401B9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -483,7 +488,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AudioPlayer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AudioPlayer";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FireVox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FireVox";
 			};
 			name = Debug;
 		};
@@ -505,7 +510,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AudioPlayer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AudioPlayer";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FireVox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FireVox";
 			};
 			name = Release;
 		};
@@ -552,7 +557,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9A87FC522E77ED5A00B401B9 /* Build configuration list for PBXProject "AudioPlayer" */ = {
+		9A87FC522E77ED5A00B401B9 /* Build configuration list for PBXProject "FireVox" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9A87FC7B2E77ED5D00B401B9 /* Debug */,
@@ -561,7 +566,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9A87FC7D2E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayer" */ = {
+		9A87FC7D2E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVox" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9A87FC7E2E77ED5D00B401B9 /* Debug */,
@@ -570,7 +575,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9A87FC802E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayerTests" */ = {
+		9A87FC802E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVoxTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9A87FC812E77ED5D00B401B9 /* Debug */,
@@ -579,7 +584,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9A87FC832E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "AudioPlayerUITests" */ = {
+		9A87FC832E77ED5D00B401B9 /* Build configuration list for PBXNativeTarget "FireVoxUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9A87FC842E77ED5D00B401B9 /* Debug */,
