@@ -175,7 +175,7 @@ struct FolderGridCard: View {
                 Button(action: {
                     onRemoveCustomArtwork(folder)
                 }) {
-                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                    Label("Remove Custom Artwork", systemImage: "trash")
                 }
                 .accessibilityLabel("Remove custom artwork")
                 .accessibilityHint("Remove the custom artwork and revert to default")
@@ -281,7 +281,7 @@ struct FolderListCard: View {
                 Button(action: {
                     onRemoveCustomArtwork(folder)
                 }) {
-                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
+                    Label("Remove Custom Artwork", systemImage: "trash")
                 }
                 .accessibilityLabel("Remove custom artwork")
                 .accessibilityHint("Remove the custom artwork and revert to default")

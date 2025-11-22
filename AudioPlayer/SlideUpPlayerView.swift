@@ -183,18 +183,21 @@ struct SlideUpPlayerView: View {
     
     private var expandedPlayer: some View {
         AccessibleExpandedPlayer {
-            VStack(spacing: 0) {
+            VStack(spacing: 16) {
                 // Drag handle at top
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color.white.opacity(0.3))
                     .frame(width: 80, height: 5)
-                    .padding(.top, 12)
                     .accessibilityHidden(true)
                 
-                // Main content with proper spacing
-                VStack(spacing: 40) {
+                // Main content with adaptive spacing
+                VStack(spacing: 16) {
                     // Book artwork with overlay details
-                    bookArtworkWithDetails
+                    artworkBackground
+                        .frame(width: 280, height: 280)
+                    
+                    // Book Details
+                    bookDetailsOverlay
                     
                     // Playback controls group
                     playbackControlsGroup
@@ -205,9 +208,9 @@ struct SlideUpPlayerView: View {
                     // Bottom options (Sleep/Speed)
                     bottomOptions
                 }
-                .padding(.top, 0)
+                .padding(.top)
                 
-                Spacer(minLength: 40) // Bottom spacing
+               //Spacer(minLength: 20) // Flexible bottom spacing
             }
         } onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -217,18 +220,9 @@ struct SlideUpPlayerView: View {
         }
     }
     
-    private var bookArtworkWithDetails: some View {
-        ZStack(alignment: .bottom) {
-            artworkBackground
-            gradientOverlay
-            bookDetailsOverlay
-        }
-        .frame(height: 376)
-        .frame(maxWidth: .infinity)
-    }
     
     private var artworkBackground: some View {
-        RoundedRectangle(cornerRadius: 25)
+        RoundedRectangle(cornerRadius: 0)
             .fill(Color.gray.opacity(0.2))
             .overlay(
                 Group {
@@ -275,18 +269,18 @@ struct SlideUpPlayerView: View {
     }
     
     private var bookDetailsOverlay: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .center, spacing: 2) {
             Text(audioPlayerService.currentAudioFile?.title ?? "Title Long One Line Second")
                 .font(FontManager.font(.regular, size: 20))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
             
             Text(audioPlayerService.currentAudioFile?.artist ?? "Author Name Long One")
                 .font(FontManager.font(.regular, size: 17))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)

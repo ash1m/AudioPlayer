@@ -10,11 +10,6 @@ import CoreData
 import UniformTypeIdentifiers
 import UIKit
 
-enum LibraryViewMode: CaseIterable {
-    case grid
-    case list
-}
-
 enum SortOption: String, CaseIterable {
     case fileName = "File Name"
     case title = "Title"
@@ -50,42 +45,47 @@ struct LibraryGridView: View {
     @State private var artworkErrorMessage = ""
     @State private var isShowingDetailedResults = false
     @State private var isImporting = false
-    @State private var viewMode: LibraryViewMode = .grid
     @State private var sortOption: SortOption = .fileName
     
     // Performance optimization - reduce view rebuilds
     @State private var lastContentRefresh: CFTimeInterval = 0
     @State private var isContentLoading = false
     
-    private var gridColumns: [GridItem] {
-        let spacing = AccessibleSpacing.standard(for: dynamicTypeSize)
-        
-        // Two equal flexible columns for large card display
-        return [
-            GridItem(.flexible(), spacing: spacing),
-            GridItem(.flexible(), spacing: spacing)
-        ]
-    }
-    
-    // Consistent artwork size for all cards
-    private var artworkSize: CGFloat {
-        switch dynamicTypeSize {
-        case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
-            return 160 // Large artwork for accessibility
-        case .xLarge, .xxLarge, .xxxLarge:
-            return 140 // Medium-large artwork
-        case .large:
-            return 120 // Standard large artwork
-        default:
-            return 100 // Standard artwork
-        }
-    }
+    // Scroll tracking for rotation effect
+    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            breadcrumbView
-            contentView
+        NavigationStack {
+            VStack(spacing: 0) {
+                breadcrumbView
+                contentView
+            }
+            //.navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    sortByMenu
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        isShowingDocumentPicker = true
+                    }) {
+                        Image(systemName: "plus.circle")
+                    }
+                    .accessibilityLabel("Add audio files")
+                    .accessibilityHint("Opens file picker to import audio files or folders")
+                }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        navigateToSettings()
+                    }) {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                    .accessibilityHint("Opens app settings and preferences")
+                }
+            }
+            //.toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            //.toolbarBackgroundVisibility(.automatic, for: .navigationBar)
         }
         .accessibilityLabel(libraryAccessibilityLabel)
         .dynamicContentFocus(
@@ -393,7 +393,7 @@ struct LibraryGridView: View {
                 
                 // Announce import results for VoiceOver users
                 accessibilityManager.announceLibraryUpdate(
-                    importedCount: successCount, 
+                    importedCount: successCount,
                     totalLibraryCount: audioFiles.count
                 )
                 
@@ -405,55 +405,6 @@ struct LibraryGridView: View {
     
     // MARK: - UI Components
     
-    private var headerView: some View {
-        VStack(spacing: 0) {
-            // Status bar space
-            Color.clear
-                .frame(height: 44)
-            
-            // iOS-style header
-            VStack(spacing: 0) {
-                HStack {
-                    // Library title on the left
-                    Text("Library")
-                        .font(FontManager.fontWithSystemFallback(weight: .bold, size: FontManager.FontSize.largeTitle))
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    // Right side buttons
-                    HStack(spacing: 20) {
-                        Button("Add") {
-                            isShowingDocumentPicker = true
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("Add audio files")
-                        .accessibilityHint("Opens file picker to import audio files or folders")
-                        
-                        Button("Settings") {
-                            navigateToSettings()
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("Settings")
-                        .accessibilityHint("Opens app settings and preferences")
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                
-                // Sort By section
-                HStack {
-                    sortByMenu
-                        .padding(.horizontal, 16)
-                    
-                    Spacer()
-                }
-                .padding(.bottom, 8)
-            }
-            .background(Color(.systemBackground))
-        }
-    }
     
     @ViewBuilder
     private var breadcrumbView: some View {
@@ -489,99 +440,51 @@ struct LibraryGridView: View {
     }
     
     private var mainContentView: some View {
-        ScrollView {
-            if viewMode == .grid {
-                gridContentView
-            } else {
-                listContentView
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                ZStack(alignment: .topLeading) {
+                    // Scroll offset tracker
+                    GeometryReader { geometry in
+                        Color.clear
+                            .preference(key: ScrollOffsetKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    }
+                    .frame(height: 0)
+                    
+                    // Content
+                    audioBookListView
+                        .padding(.bottom, 120) // Accommodate minimized player
+                }
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetKey.self) { offset in
+                scrollOffset = -offset
             }
         }
     }
     
-    private var gridContentView: some View {
-        LazyVGrid(columns: gridColumns, spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
-            // Show folders first
-            ForEach(folders, id: \.self) { folder in
-                FolderGridCard(
-                    folder: folder,
-                    artworkSize: artworkSize,
-                    action: { }, // Empty action - playlist functionality handled internally
-                    onDelete: { folder in
-                        folderNavigationManager.deleteFolder(folder, context: viewContext)
-                        refreshContent()
-                    },
-                    onSetCustomArtwork: setCustomArtwork,
-                    onRemoveCustomArtwork: removeCustomArtwork
-                )
-            }
-            
-            // Then show audio files
-            ForEach(audioFiles, id: \.self) { audioFile in
-                AudioFileGridCard(
+    private var audioBookListView: some View {
+        LazyVStack(spacing: 20) {
+            ForEach(Array(audioFiles.enumerated()), id: \.element.self) { index, audioFile in
+                AudiobookListCard(
                     audioFile: audioFile,
-                    artworkSize: artworkSize,
-                    action: { handleAudioFileSelection(audioFile) },
+                    rowIndex: index,
+                    scrollOffset: scrollOffset,
                     onDelete: deleteAudioFile,
+                    onTap: { handleAudioFileSelection(audioFile) },
                     onMarkAsPlayed: markAsPlayed,
                     onResetProgress: resetProgress,
                     onShare: shareAudioFile,
                     onSetCustomArtwork: setCustomArtwork,
                     onRemoveCustomArtwork: removeCustomArtwork
                 )
+                .transition(.asymmetric(
+                    insertion: .opacity,
+                    removal: .opacity.combined(with: .scale(scale: 0.8))
+                ))
             }
         }
-        .animation(.none, value: audioFiles.count) // Prevent layout animations on async content changes
-        .animation(.none, value: folders.count)
-        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
-        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
-    }
-    
-    private var listContentView: some View {
-        LazyVStack(spacing: 0) {
-            // Show folders first in list mode
-            ForEach(folders, id: \.self) { folder in
-                VStack(spacing: 0) {
-                    FolderListCard(
-                        folder: folder,
-                        action: { }, // Empty action - playlist functionality handled internally
-                        onDelete: { folder in
-                            folderNavigationManager.deleteFolder(folder, context: viewContext)
-                            refreshContent()
-                        },
-                        onSetCustomArtwork: setCustomArtwork,
-                        onRemoveCustomArtwork: removeCustomArtwork
-                    )
-                    
-                    if folder != folders.last || !audioFiles.isEmpty {
-                        Divider()
-                            .padding(.leading, 76)
-                    }
-                }
-            }
-            
-            // Then show audio files
-            ForEach(audioFiles, id: \.self) { audioFile in
-                VStack(spacing: 0) {
-                AudioFileListCard(
-                    audioFile: audioFile,
-                    action: { handleAudioFileSelection(audioFile) },
-                    onDelete: deleteAudioFile,
-                    onMarkAsPlayed: markAsPlayed,
-                    onResetProgress: resetProgress,
-                    onShare: shareAudioFile,
-                    onSetCustomArtwork: setCustomArtwork,
-                    onRemoveCustomArtwork: removeCustomArtwork
-                )
-                    
-                    if audioFile != audioFiles.last {
-                        Divider()
-                            .padding(.leading, 76)
-                    }
-                }
-            }
-        }
-        .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
-        .accessiblePadding(.top, dynamicTypeSize: dynamicTypeSize)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
     }
     
     private var sortByMenu: some View {
@@ -722,519 +625,12 @@ struct LibraryGridView: View {
     }
 }
 
-struct AudioFileGridCard: View {
-    @EnvironmentObject var audioPlayerService: AudioPlayerService
-    @EnvironmentObject var accessibilityManager: AccessibilityManager
-    @EnvironmentObject var audioFileManager: AudioFileManager
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-    @Environment(\.managedObjectContext) private var viewContext
-    let audioFile: AudioFile
-    let artworkSize: CGFloat
-    let action: () -> Void
-    let onDelete: (AudioFile) -> Void
-    let onMarkAsPlayed: (AudioFile) -> Void
-    let onResetProgress: (AudioFile) -> Void
-    let onShare: (AudioFile) -> Void
-    let onSetCustomArtwork: (AudioFile) -> Void
-    let onRemoveCustomArtwork: (AudioFile) -> Void
+// MARK: - Scroll Offset Preference Key
+struct ScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
     
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                // Large artwork container with consistent size
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(LinearGradient(
-                            colors: [
-                                accessibilityManager.highContrastColor(base: .blue.opacity(0.2), highContrast: .black.opacity(0.4)),
-                                accessibilityManager.highContrastColor(base: .purple.opacity(0.2), highContrast: .black.opacity(0.6))
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                        .frame(width: artworkSize, height: artworkSize)
-                    
-                    // Artwork content
-                    if let artworkURL = audioFile.artworkURL {
-                        LocalAsyncImageWithPhase(url: artworkURL) { phase in
-                            switch phase {
-                            case .success(let image):
-                                return AnyView(image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: artworkSize, height: artworkSize)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16)))
-                            case .failure(let error):
-                                let _ = print("🎨 LocalAsyncImage failed to load artwork for \(audioFile.title ?? "Unknown"): \(error)")
-                                let _ = print("🎨 Artwork URL: \(artworkURL.path)")
-                                let _ = print("🎨 File exists: \(FileManager.default.fileExists(atPath: artworkURL.path))")
-                                return AnyView(Image(systemName: "music.note")
-                                    .font(FontManager.font(.regular, size: artworkSize * 0.4))
-                                    .foregroundColor(.white)
-                                    .frame(width: artworkSize, height: artworkSize)
-                                    .accessibilityHidden(true))
-                            case .empty:
-                                return AnyView(ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(1.2)
-                                    .frame(width: artworkSize, height: artworkSize))
-                            }
-                        }
-                    } else {
-                        Image(systemName: "music.note")
-                            .font(FontManager.font(.regular, size: artworkSize * 0.4))
-                            .foregroundColor(.white)
-                            .frame(width: artworkSize, height: artworkSize)
-                            .accessibilityHidden(true)
-                    }
-                    
-                    // Play/Pause indicator overlay
-                    if audioPlayerService.currentAudioFile == audioFile {
-                        VStack {
-                            HStack {
-                                Spacer()
-                                Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(FontManager.font(.regular, size: FontManager.FontSize.title))
-                                    .foregroundColor(.white)
-                                    .background(Circle().fill(.black.opacity(0.8)))
-                                    .padding(8)
-                                    .accessibilityLabel(audioPlayerService.isPlaying ? "Currently playing" : "Currently paused")
-                                    .accessibilityHidden(true)
-                            }
-                            Spacer()
-                        }
-                        .frame(width: artworkSize, height: artworkSize)
-                    }
-                    
-                    // Duration overlay
-                    if audioFile.duration > 0 {
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Text(TimeInterval(audioFile.duration).formattedDuration)
-                                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: FontManager.FontSize.caption))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(.black.opacity(0.8))
-                                    .clipShape(Capsule())
-                                    .padding(8)
-                            }
-                        }
-                        .frame(width: artworkSize, height: artworkSize)
-                    }
-                }
-                
-                // Progress bar directly under artwork
-                if audioFile.duration > 0 {
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(.secondary.opacity(0.3))
-                            .frame(height: 4)
-                        
-                        Rectangle()
-                            .fill(.blue)
-                            .frame(width: artworkSize * progressPercentage, height: 4)
-                    }
-                    .frame(width: artworkSize)
-                    .clipShape(Capsule())
-                }
-                
-                // Text content area with improved typography
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(audioFile.originalFileNameWithoutExtension)
-                        .font(FontManager.fontWithSystemFallback(weight: .medium, size: FontManager.FontSize.subheadline))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .visualAccessibility()
-                    
-                    Text(audioFile.artist ?? "Unknown Artist")
-                        .font(FontManager.font(.regular, size: FontManager.FontSize.caption))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .visualAccessibility(foreground: .secondary)
-                }
-                .padding(.horizontal, AccessibleSpacing.compact(for: dynamicTypeSize))
-            }
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.black)
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            // Playback actions
-            Button(action: {
-                onMarkAsPlayed(audioFile)
-            }) {
-                Label("Mark as Played", systemImage: "checkmark.circle")
-            }
-            .accessibilityLabel("Mark as played")
-            .accessibilityHint("Sets playback progress to complete")
-            
-            Button(action: {
-                onResetProgress(audioFile)
-            }) {
-                Label("Reset Progress", systemImage: "arrow.counterclockwise")
-            }
-            .accessibilityLabel("Reset progress")
-            .accessibilityHint("Resets playback to the beginning")
-            
-            Divider()
-            
-            // Custom artwork actions
-            Button(action: {
-                onSetCustomArtwork(audioFile)
-            }) {
-                Label("Set Custom Artwork", systemImage: "photo")
-            }
-            .accessibilityLabel("Set custom artwork")
-            .accessibilityHint("Choose a custom image as album artwork")
-            
-            if audioFileManager.hasCustomArtwork(for: audioFile) {
-                Button(action: {
-                    onRemoveCustomArtwork(audioFile)
-                }) {
-                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
-                }
-                .accessibilityLabel("Remove custom artwork")
-                .accessibilityHint("Remove the custom artwork and revert to original")
-            }
-            
-            Divider()
-            
-            // Sharing action
-            Button(action: {
-                onShare(audioFile)
-            }) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-            .accessibilityLabel("Share audio file")
-            .accessibilityHint("Opens share sheet to send this file to other apps")
-            
-            Divider()
-            
-            // Destructive action
-            Button(role: .destructive, action: {
-                onDelete(audioFile)
-            }) {
-                Label("Delete", systemImage: "trash")
-            }
-            .accessibilityLabel("Delete audio file")
-            .accessibilityHint("Permanently removes this file from your library")
-        }
-        .accessibilityLabel(audioAccessibilityLabel)
-        .accessibilityHint(audioAccessibilityHint)
-        .accessibilityValue(audioAccessibilityValue)
-        .accessibilityAddTraits(.isButton)
-        .accessibleTouchTarget()
-        .visualAccessibility(reducedMotion: true)
-    }
-    
-    // MARK: - Computed Properties
-    
-    
-    private var progressPercentage: Double {
-        // Only calculate progress for currently playing file to reduce CPU usage
-        guard audioPlayerService.currentAudioFile == audioFile else {
-            // For non-playing files, just use stored position
-            return audioFile.duration > 0 ? audioFile.currentPosition / audioFile.duration : 0
-        }
-        
-        // For currently playing file, use real-time progress
-        return audioFile.duration > 0 ? audioPlayerService.currentTime / audioFile.duration : 0
-    }
-    
-    
-    // MARK: - Computed Properties for Accessibility
-    
-    private var audioAccessibilityLabel: String {
-        let title = audioFile.title ?? "Unknown Title"
-        let artist = audioFile.artist ?? "Unknown Artist"
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        let playbackStatus = isCurrentlyPlaying ? (audioPlayerService.isPlaying ? "Currently playing" : "Currently paused") : ""
-        
-        return "\(title) by \(artist). \(playbackStatus)".trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    
-    private var audioAccessibilityHint: String {
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        return isCurrentlyPlaying ? "Double tap to go to player" : "Double tap to play"
-    }
-    
-    private var audioAccessibilityValue: String {
-        let duration = TimeInterval(audioFile.duration).accessibleDuration
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        
-        // Include progress information
-        let progress = Int(progressPercentage * 100)
-        let progressText = progress > 0 ? ". \(progress)% played" : ""
-        
-        return isCurrentlyPlaying ? "Duration: \(duration). Currently selected\(progressText)." : "Duration: \(duration)\(progressText)"
-    }
-}
-
-struct AudioFileListCard: View {
-    @EnvironmentObject var audioPlayerService: AudioPlayerService
-    @EnvironmentObject var accessibilityManager: AccessibilityManager
-    @EnvironmentObject var audioFileManager: AudioFileManager
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-    @Environment(\.managedObjectContext) private var viewContext
-    let audioFile: AudioFile
-    let action: () -> Void
-    let onDelete: (AudioFile) -> Void
-    let onMarkAsPlayed: (AudioFile) -> Void
-    let onResetProgress: (AudioFile) -> Void
-    let onShare: (AudioFile) -> Void
-    let onSetCustomArtwork: (AudioFile) -> Void
-    let onRemoveCustomArtwork: (AudioFile) -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
-                // Thumbnail and progress column
-                VStack(spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                    // Square thumbnail
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(LinearGradient(
-                                colors: [
-                                    accessibilityManager.highContrastColor(base: .blue.opacity(0.3), highContrast: .black.opacity(0.5)),
-                                    accessibilityManager.highContrastColor(base: .purple.opacity(0.3), highContrast: .black.opacity(0.7))
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                            .frame(width: 60, height: 60)
-                        
-                        if let artworkURL = audioFile.artworkURL {
-                            LocalAsyncImageWithPhase(url: artworkURL) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    return AnyView(image
-                                        .resizable()
-                                        .aspectRatio(1, contentMode: .fill)
-                                        .frame(width: 60, height: 60)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8)))
-                                case .failure(let error):
-                                    let _ = print("🎨 LocalAsyncImage (list) failed to load artwork for \(audioFile.title ?? "Unknown"): \(error)")
-                                    return AnyView(Image(systemName: "music.note")
-                                        .font(FontManager.font(.regular, size: 22))
-                                        .foregroundColor(.white)
-                                        .accessibilityHidden(true))
-                                case .empty:
-                                    return AnyView(ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(0.6))
-                                }
-                            }
-                        } else {
-                            Image(systemName: "music.note")
-                                .font(FontManager.font(.regular, size: 22))
-                                .foregroundColor(.white)
-                                .accessibilityHidden(true)
-                        }
-                        
-                        // Play/Pause indicator for currently playing file
-                        if audioPlayerService.currentAudioFile == audioFile {
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: audioPlayerService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                        .font(FontManager.font(.regular, size: 12))
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(.black.opacity(0.7)).frame(width: 16, height: 16))
-                                        .accessibilityLabel(audioPlayerService.isPlaying ? "Currently playing" : "Currently paused")
-                                        .accessibilityHidden(true)
-                                }
-                                Spacer()
-                            }
-                            .frame(width: 60, height: 60)
-                            .padding(4)
-                        }
-                    }
-                    
-                    // Progress bar under thumbnail
-                    if audioFile.duration > 0 {
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(.secondary.opacity(0.3))
-                                    .frame(height: 2)
-                                
-                                Rectangle()
-                                    .fill(.primary)
-                                    .frame(width: geometry.size.width * progressPercentage, height: 2)
-                            }
-                            .clipShape(Capsule())
-                        }
-                        .frame(width: 60, height: 2)
-                    }
-                }
-                
-                // Title and metadata column
-                VStack(alignment: .leading, spacing: AccessibleSpacing.compact(for: dynamicTypeSize)) {
-                    Text(audioFile.originalFileNameWithoutExtension)
-                        .dynamicTypeSupport(.headline, maxSize: .accessibility2, lineLimit: 1, allowsTightening: true)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .visualAccessibility()
-                    
-                    if let artist = audioFile.artist, !artist.isEmpty {
-                        Text(artist)
-                            .dynamicTypeSupport(.caption, maxSize: .accessibility1, lineLimit: 2)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .visualAccessibility(foreground: .secondary)
-                    } else {
-                        Text("Unknown Artist")
-                            .dynamicTypeSupport(.caption, maxSize: .accessibility1, lineLimit: 2)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .visualAccessibility(foreground: .secondary)
-                    }
-                    
-                    // Duration in bottom right
-                    if audioFile.duration > 0 {
-                        HStack {
-                            Spacer()
-                            Text(TimeInterval(audioFile.duration).formattedDuration)
-                                .font(FontManager.font(.regular, size: 11))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-            .frame(height: 80)
-            .padding(.vertical, AccessibleSpacing.compact(for: dynamicTypeSize))
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black)
-                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-            )
-            .padding(.horizontal, 4)
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            // Playback actions
-            Button(action: {
-                onMarkAsPlayed(audioFile)
-            }) {
-                Label("Mark as Played", systemImage: "checkmark.circle")
-            }
-            .accessibilityLabel("Mark as played")
-            .accessibilityHint("Sets playback progress to complete")
-            
-            Button(action: {
-                onResetProgress(audioFile)
-            }) {
-                Label("Reset Progress", systemImage: "arrow.counterclockwise")
-            }
-            .accessibilityLabel("Reset progress")
-            .accessibilityHint("Resets playback to the beginning")
-            
-            Divider()
-            
-            // Custom artwork actions
-            Button(action: {
-                onSetCustomArtwork(audioFile)
-            }) {
-                Label("Set Custom Artwork", systemImage: "photo")
-            }
-            .accessibilityLabel("Set custom artwork")
-            .accessibilityHint("Choose a custom image as album artwork")
-            
-            if audioFileManager.hasCustomArtwork(for: audioFile) {
-                Button(action: {
-                    onRemoveCustomArtwork(audioFile)
-                }) {
-                    Label("Remove Custom Artwork", systemImage: "photo.badge.minus")
-                }
-                .accessibilityLabel("Remove custom artwork")
-                .accessibilityHint("Remove the custom artwork and revert to original")
-            }
-            
-            Divider()
-            
-            // Sharing action
-            Button(action: {
-                onShare(audioFile)
-            }) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-            .accessibilityLabel("Share audio file")
-            .accessibilityHint("Opens share sheet to send this file to other apps")
-            
-            Divider()
-            
-            // Destructive action
-            Button(role: .destructive, action: {
-                onDelete(audioFile)
-            }) {
-                Label("Delete", systemImage: "trash")
-            }
-            .accessibilityLabel("Delete audio file")
-            .accessibilityHint("Permanently removes this file from your library")
-        }
-        .accessibilityLabel(audioAccessibilityLabel)
-        .accessibilityHint(audioAccessibilityHint)
-        .accessibilityValue(audioAccessibilityValue)
-        .accessibilityAddTraits(.isButton)
-        .accessibleTouchTarget()
-        .visualAccessibility(reducedMotion: true)
-    }
-    
-    // MARK: - Computed Properties
-    
-    
-    private var progressPercentage: Double {
-        // Only calculate progress for currently playing file to reduce CPU usage
-        guard audioPlayerService.currentAudioFile == audioFile else {
-            // For non-playing files, just use stored position
-            return audioFile.duration > 0 ? audioFile.currentPosition / audioFile.duration : 0
-        }
-        
-        // For currently playing file, use real-time progress
-        return audioFile.duration > 0 ? audioPlayerService.currentTime / audioFile.duration : 0
-    }
-    
-    // MARK: - Computed Properties for Accessibility
-    
-    private var audioAccessibilityLabel: String {
-        let title = audioFile.title ?? "Unknown Title"
-        let artist = audioFile.artist ?? "Unknown Artist"
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        let playbackStatus = isCurrentlyPlaying ? (audioPlayerService.isPlaying ? "Currently playing" : "Currently paused") : ""
-        
-        return "\(title) by \(artist). \(playbackStatus)".trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    
-    private var audioAccessibilityHint: String {
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        return isCurrentlyPlaying ? "Double tap to go to player" : "Double tap to play"
-    }
-    
-    private var audioAccessibilityValue: String {
-        let duration = TimeInterval(audioFile.duration).accessibleDuration
-        let isCurrentlyPlaying = audioPlayerService.currentAudioFile == audioFile
-        
-        // Include progress information
-        let progress = Int(progressPercentage * 100)
-        let progressText = progress > 0 ? ". \(progress)% played" : ""
-        
-        return isCurrentlyPlaying ? "Duration: \(duration). Currently selected\(progressText)." : "Duration: \(duration)\(progressText)"
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -1249,4 +645,3 @@ struct AudioFileListCard: View {
     .environmentObject(AccessibilityManager())
     .environmentObject(LocalizationManager.shared)
 }
-

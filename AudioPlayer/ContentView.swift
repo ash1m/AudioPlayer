@@ -35,39 +35,29 @@ struct ContentView: View {
         ZStack {
             // Main content layer
             Group {
-                switch currentView {
-                case .library:
-                    LibraryGridView(
-                        navigateToPlayer: { /* Player is now a slide-up overlay */ },
-                        navigateToSettings: { currentView = .settings }
-                    )
-                    
-                // ORPHANED CODE: .player case is no longer used since player is now an overlay
-                /*
-                case .player:
-                    // This case is no longer used since player is now an overlay
-                    LibraryGridView(
-                        navigateToPlayer: { },
-                        navigateToSettings: { currentView = .settings }
-                    )
-                */
-                    
-                case .settings:
+                if currentView == .settings {
                     NavigationStack {
                         SettingsView()
                             .navigationBarTitleDisplayMode(.large)
                             .toolbar {
-                                ToolbarItem(placement: .navigationBarLeading) {
-                                    Button("Library") {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    Button("Back") {
                                         currentView = .library
                                     }
+                                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+                                    .toolbarBackgroundVisibility(.automatic, for: .navigationBar)
                                 }
                             }
                     }
+                } else {
+                    LibraryGridView(
+                        navigateToPlayer: { /* Player is now a slide-up overlay */ },
+                        navigateToSettings: { currentView = .settings }
+                    )
                 }
             }
             
-            // Slide-up player overlay (only show when there's an audio file)
+            // Slide-up player overlay
             if audioPlayerService.currentAudioFile != nil {
                 SlideUpPlayerView()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
