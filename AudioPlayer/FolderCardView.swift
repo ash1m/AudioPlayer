@@ -1,6 +1,6 @@
 //
 //  FolderCardView.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Assistant on 2025/09/22.
 //

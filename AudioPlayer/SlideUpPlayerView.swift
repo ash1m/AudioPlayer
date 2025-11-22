@@ -1,6 +1,6 @@
 //
 //  SlideUpPlayerView.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Assistant on 2025/10/04.
 //

@@ -1,6 +1,6 @@
 //
-//  AudioPlayerService.swift
-//  AudioPlayer
+//  FireVoxService.swift
+//  FireVox
 //
 //  Created by Ashim S on 2025/09/15.
 //

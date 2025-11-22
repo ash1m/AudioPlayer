@@ -1,6 +1,6 @@
 //
 //  CustomArtworkPicker.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Warp AI on 2025/10/27.
 //

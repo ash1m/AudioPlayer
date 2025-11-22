@@ -1,6 +1,6 @@
 //
 //  Persistence.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Ashim S on 2025/09/15.
 //
@@ -43,7 +43,7 @@ struct PersistenceController {
     let container: NSPersistentContainer
     
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "AudioPlayer")
+        container = NSPersistentContainer(name: "FireVox")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")

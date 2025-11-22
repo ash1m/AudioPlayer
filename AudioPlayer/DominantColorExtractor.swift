@@ -1,6 +1,6 @@
 //
 //  DominantColorExtractor.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Assistant on 2025/11/11.
 //

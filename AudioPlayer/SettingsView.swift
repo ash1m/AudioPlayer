@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  AudioPlayer
+//  FireVox
 //
 //  Created by Ashim S on 2025/09/16.
 //
@@ -22,16 +22,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Accessibility Section
-                Section {
-                    NavigationLink(destination: AccessibilitySettingsView()) {
-                        Label(localizationManager.settingsAccessibility, systemImage: "accessibility")
-                            .accessibilityLabel(localizationManager.localizedString("settings.accessibility.label"))
-                            .accessibilityHint(localizationManager.localizedString("settings.accessibility.hint"))
-                    }
-                    .accessibilityAddTraits(.isButton)
-                    .accessibleTouchTarget()
-                }
                 // Language Section
                 Section {
                     Picker(localizationManager.localizedString("settings.language"), selection: $settingsManager.selectedLanguage) {

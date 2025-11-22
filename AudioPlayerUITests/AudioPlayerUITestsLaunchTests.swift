@@ -1,13 +1,13 @@
 //
-//  AudioPlayerUITestsLaunchTests.swift
-//  AudioPlayerUITests
+//  FireVoxUITestsLaunchTests.swift
+//  FireVoxUITests
 //
 //  Created by Ashim S on 2025/09/15.
 //
 
 import XCTest
 
-final class AudioPlayerUITestsLaunchTests: XCTestCase {
+final class FireVoxUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
