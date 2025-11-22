@@ -30,6 +30,8 @@
 "library.no.content" = "No Content";
 "library.empty.folder.description" = "This folder is empty";
 "library.no.content.description" = "Tap the 'Add' button to import audio files or folders";
+"breadcrumb.back" = "Back";
+"breadcrumb.back.hint" = "Go back to parent folder";
 
 // Context menu actions
 "action.mark.as.played" = "Mark as Played";

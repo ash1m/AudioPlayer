@@ -30,6 +30,8 @@
 "library.no.content" = "Kein Inhalt";
 "library.empty.folder.description" = "Dieser Ordner ist leer";
 "library.no.content.description" = "Tippen Sie auf die Schaltfläche +, um Audiodateien oder Ordner zu importieren";
+"breadcrumb.back" = "Zurück";
+"breadcrumb.back.hint" = "Zum übergeordneten Ordner zurück";
 
 // Context menu actions
 "action.mark.as.played" = "Als gespielt markieren";

@@ -30,6 +30,8 @@
 "library.no.content" = "Aucun contenu";
 "library.empty.folder.description" = "Ce dossier est vide";
 "library.no.content.description" = "Touchez le bouton + pour importer des fichiers audio ou des dossiers";
+"breadcrumb.back" = "Retour";
+"breadcrumb.back.hint" = "Revenir au dossier parent";
 
 // Context menu actions
 "action.mark.as.played" = "Marquer comme lu";

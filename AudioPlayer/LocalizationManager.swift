@@ -93,6 +93,11 @@ class LocalizationManager: ObservableObject {
     var libraryUnknownArtist: String { localizedString("library.unknown.artist") }
     var libraryUnknownAlbum: String { localizedString("library.unknown.album") }
     
+    // MARK: - Breadcrumb Navigation
+    
+    var breadcrumbBack: String { localizedString("breadcrumb.back") }
+    var breadcrumbBackHint: String { localizedString("breadcrumb.back.hint") }
+    
     // MARK: - Audio Player
     
     var playerPlay: String { localizedString("player.play") }

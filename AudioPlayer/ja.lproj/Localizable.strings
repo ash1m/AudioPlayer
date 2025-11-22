@@ -30,6 +30,8 @@
 "library.no.content" = "コンテンツなし";
 "library.empty.folder.description" = "このフォルダは空です";
 "library.no.content.description" = "+ ボタンをタップしてオーディオファイルまたはフォルダをインポートします";
+"breadcrumb.back" = "戻る";
+"breadcrumb.back.hint" = "親フォルダに戻る";
 
 // Context menu actions
 "action.mark.as.played" = "再生済みにする";

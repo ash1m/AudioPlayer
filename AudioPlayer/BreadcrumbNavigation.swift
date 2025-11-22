@@ -12,6 +12,7 @@ struct BreadcrumbNavigation: View {
     @ObservedObject var folderNavigationManager: FolderNavigationManager
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @ObservedObject private var localizationManager = LocalizationManager.shared
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
@@ -25,7 +26,7 @@ struct BreadcrumbNavigation: View {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.caption)
-                    Text("Back")
+                    Text(localizationManager.breadcrumbBack)
                         .font(.subheadline)
                 }
                 .foregroundColor(.blue)

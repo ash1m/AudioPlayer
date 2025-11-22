@@ -30,6 +30,8 @@
 "library.no.content" = "Nessun contenuto";
 "library.empty.folder.description" = "Questa cartella è vuota";
 "library.no.content.description" = "Tocca il pulsante + per importare file audio o cartelle";
+"breadcrumb.back" = "Indietro";
+"breadcrumb.back.hint" = "Torna alla cartella principale";
 
 // Context menu actions
 "action.mark.as.played" = "Segna come riprodotto";
