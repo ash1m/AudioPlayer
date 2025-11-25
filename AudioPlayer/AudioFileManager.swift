@@ -431,33 +431,22 @@ class AudioFileManager: ObservableObject {
     }
     
     private func validateNoDuplicate(url: URL, existingNames: Set<String>) throws {
-        let fileName = url.lastPathComponent
-        let nameWithoutExtension = url.deletingPathExtension().lastPathComponent
-        
-        // Check exact name match
-        if existingNames.contains(fileName) {
-            throw ImportError.duplicateFile(fileName)
-        }
-        
-        // Check for similar names (same name but different extension)
-        for existingName in existingNames {
-            let existingNameWithoutExt = (existingName as NSString).deletingPathExtension
-            if existingNameWithoutExt.lowercased() == nameWithoutExtension.lowercased() {
-                throw ImportError.duplicateFile("Similar to existing: \(existingName)")
-            }
-        }
+        // Since we store UUID-prefixed file paths (filePath), each import automatically
+        // gets a unique storage path. We don't need filename-based duplicate detection
+        // because the UUID ensures uniqueness regardless of the original filename.
+        // If needed in the future, we could check file content hash instead.
     }
     
     private func getExistingFileNames(context: NSManagedObjectContext) async -> Set<String> {
         return await MainActor.run {
             let request = AudioFile.fetchRequest()
-            request.propertiesToFetch = ["fileName"]
+            request.propertiesToFetch = ["filePath"]
             
             do {
                 let existingFiles = try context.fetch(request)
-                return Set(existingFiles.compactMap { $0.fileName })
+                return Set(existingFiles.compactMap { $0.filePath })
             } catch {
-                print("Error fetching existing file names: \(error)")
+                print("Error fetching existing file paths: \(error)")
                 return Set<String>()
             }
         }
