@@ -431,11 +431,31 @@ struct LibraryGridView: View {
     }
     
     private var emptyStateView: some View {
-        ContentUnavailableView(
-            folderNavigationManager.isInFolder ? "Empty Folder" : "No Content",
-            systemImage: folderNavigationManager.isInFolder ? "folder" : "music.note.list",
-            description: Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Tap the 'Add' button to import audio files or folders")
-        )
+        VStack(spacing: 20) {
+            Image(systemName: folderNavigationManager.isInFolder ? "folder" : "music.note.list")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text(folderNavigationManager.isInFolder ? "Empty Folder" : "No Audio Files")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            VStack(spacing: 8) {
+                Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Your library is empty")
+                    .foregroundColor(.secondary)
+                
+                Text("Tap the ")
+                    .foregroundColor(.secondary) +
+                Text(Image(systemName: "plus.circle"))
+                    .foregroundColor(.blue) +
+                Text(" button to add audio files or folders")
+                    .foregroundColor(.secondary)
+            }
+            .font(.body)
+            .multilineTextAlignment(.center)
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityLabel(folderNavigationManager.isInFolder ? "Folder is empty" : "Library is empty")
         .accessibilityHint("Import audio files using the add button")
         .dynamicContentFocus(
