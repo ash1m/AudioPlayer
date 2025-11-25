@@ -365,15 +365,15 @@ struct LibraryGridView: View {
     }
     
     private func importAudioFiles(urls: [URL]) {
-        print("\ud83d\udce5 Starting import of \(urls.count) items")
+        print("📥 Starting import of \(urls.count) items")
         Task { @MainActor in
             isImporting = true
         }
         
         Task {
-            print("\ud83d\udd0d Importing files with context...")
+            print("🔍 Importing files with context...")
             let results = await audioFileManager.importAudioFiles(urls: urls, context: viewContext)
-            print("\u2705 Import complete: \(results.filter { $0.success }.count)/\(results.count) succeeded")
+            print("✅ Import complete: \(results.filter { $0.success }.count)/\(results.count) succeeded")
             
             await MainActor.run {
                 isImporting = false
