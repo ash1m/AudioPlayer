@@ -365,12 +365,15 @@ struct LibraryGridView: View {
     }
     
     private func importAudioFiles(urls: [URL]) {
+        print("\ud83d\udce5 Starting import of \(urls.count) items")
         Task { @MainActor in
             isImporting = true
         }
         
         Task {
+            print("\ud83d\udd0d Importing files with context...")
             let results = await audioFileManager.importAudioFiles(urls: urls, context: viewContext)
+            print("\u2705 Import complete: \(results.filter { $0.success }.count)/\(results.count) succeeded")
             
             await MainActor.run {
                 isImporting = false
@@ -531,6 +534,7 @@ struct LibraryGridView: View {
         // Throttle content loading to prevent excessive UI updates
         let now = CACurrentMediaTime()
         if now - lastContentRefresh < 0.5 || isContentLoading {
+            print("⏸️  Throttling loadCurrentContent - too recent or already loading")
             return
         }
         
@@ -547,6 +551,7 @@ struct LibraryGridView: View {
         
         folders = folderNavigationManager.getFolders(context: viewContext)
         var unsortedAudioFiles = folderNavigationManager.getAudioFiles(context: viewContext)
+        print("📂 Loaded \(folders.count) folders and \(unsortedAudioFiles.count) audio files")
         
         // Apply sorting
         switch sortOption {
