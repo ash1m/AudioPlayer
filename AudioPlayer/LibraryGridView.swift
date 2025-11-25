@@ -400,8 +400,8 @@ struct LibraryGridView: View {
                     totalLibraryCount: audioFiles.count
                 )
                 
-                // Reload content after import
-                loadCurrentContent()
+                // Force content reload by triggering refresh (bypasses throttle)
+                refreshTrigger = UUID()
             }
         }
     }
