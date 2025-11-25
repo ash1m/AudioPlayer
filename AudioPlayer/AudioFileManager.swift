@@ -162,9 +162,11 @@ class AudioFileManager: ObservableObject {
         // Save context after all imports
         await MainActor.run {
             do {
+                print("\ud83d\udcbe Batch saving all \(results.filter { $0.success }.count) files to context...")
                 try context.save()
+                print("\u2705 Context saved successfully")
             } catch {
-                print("Failed to save context after folder import: \(error)")
+                print("\u274c Failed to save context after folder import: \(error)")
             }
         }
         
@@ -506,13 +508,8 @@ class AudioFileManager: ObservableObject {
                 audioFile.folder = folder
             }
             
-            do {
-                try context.save()
-            } catch {
-                // If saving fails, remove the copied file
-                try? FileManager.default.removeItem(at: localURL)
-                print("Failed to save audio file: \(error)")
-            }
+            // Don't save here - let the caller batch save all files at once
+            print("✅ Created AudioFile entity: \(fileName)")
         }
     }
     
