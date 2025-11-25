@@ -173,9 +173,9 @@ struct LibraryGridView: View {
     }
     
     private func deleteAudioFile(_ audioFile: AudioFile) {
-        // Stop playback if this file is currently playing
+        // Stop playback and clear if this file is currently playing
         if audioPlayerService.currentAudioFile == audioFile {
-            audioPlayerService.stop()
+            audioPlayerService.clearCurrentFile()
         }
         
         // Delete the actual audio file
@@ -187,6 +187,9 @@ struct LibraryGridView: View {
         if let artworkURL = audioFile.artworkURL {
             try? FileManager.default.removeItem(at: artworkURL)
         }
+        
+        // Remove from playlists
+        PlaylistManager.removeAllPlaylistItemsForAudioFile(audioFile, context: viewContext)
         
         // Delete from Core Data
         viewContext.delete(audioFile)
