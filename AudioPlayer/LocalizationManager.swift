@@ -26,7 +26,12 @@ class LocalizationManager: ObservableObject {
     // MARK: - Supported Languages
     static let supportedLanguages = [
         "en": "English",
-        "es": "Español"
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "it": "Italiano",
+        "pt": "Português",
+        "ja": "日本語"
     ]
     
     // MARK: - Shared Instance

@@ -478,16 +478,14 @@ struct LibraryGridView: View {
                 Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderMessage : localizationManager.libraryEmptyMessage)
                     .foregroundColor(.secondary)
                 
-                Text(localizationManager.libraryImportInstructions)
-                    .foregroundColor(.secondary)
-                + Text(" ")
-                    .foregroundColor(.secondary)
-                + Text("\(Image(systemName: "plus.circle"))")
-                    .foregroundColor(.white)
-                + Text(" ")
-                    .foregroundColor(.secondary)
-                + Text(localizationManager.libraryImportButtonLabel)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text(localizationManager.libraryImportInstructions)
+                        .foregroundColor(.secondary)
+                    Image(systemName: "plus.circle")
+                        .foregroundColor(.white)
+                    Text(localizationManager.libraryImportButtonLabel)
+                        .foregroundColor(.secondary)
+                }
             }
             .font(.body)
             .multilineTextAlignment(.center)
