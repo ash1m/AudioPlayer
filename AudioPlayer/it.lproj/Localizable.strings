@@ -22,14 +22,20 @@
 // Library view
 "library.title" = "Biblioteca";
 "library.add" = "Aggiungi";
-"library.add.hint" = "Apre il selettore di file per importare file audio o cartelle";
+"library.add.hint" = "Apre il selettore di file per importare file o cartelle audio";
 "library.settings" = "Impostazioni";
 "library.settings.hint" = "Apre le impostazioni e le preferenze dell'app";
 "library.sort.by" = "Ordina per";
 "library.empty.folder" = "Cartella vuota";
 "library.no.content" = "Nessun contenuto";
 "library.empty.folder.description" = "Questa cartella è vuota";
-"library.no.content.description" = "Tocca il pulsante + per importare file audio o cartelle";
+"library.no.content.description" = "Tocca il pulsante + per importare file o cartelle audio";
+"library.empty.folder.title" = "Cartella vuota";
+"library.empty.folder.message" = "Questa cartella è vuota";
+"library.no.audio.files.title" = "Nessun file audio";
+"library.empty.message" = "La tua biblioteca è vuota";
+"library.import.instructions" = "Tocca il";
+"library.import.button.label" = "pulsante per aggiungere file audio";
 "breadcrumb.back" = "Indietro";
 "breadcrumb.back.hint" = "Torna alla cartella principale";
 

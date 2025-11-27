@@ -22,14 +22,20 @@
 // Library view
 "library.title" = "ライブラリ";
 "library.add" = "追加";
-"library.add.hint" = "オーディオファイルまたはフォルダをインポートするためのファイルピッカーを開きます";
+"library.add.hint" = "ファイルピッカーを開いてオーディオファイルまたはフォルダをインポート";
 "library.settings" = "設定";
-"library.settings.hint" = "アプリの設定と環境設定を開きます";
-"library.sort.by" = "並び替え";
+"library.settings.hint" = "アプリの設定と環境設定を開く";
+"library.sort.by" = "ソート";
 "library.empty.folder" = "空のフォルダ";
 "library.no.content" = "コンテンツなし";
 "library.empty.folder.description" = "このフォルダは空です";
-"library.no.content.description" = "+ ボタンをタップしてオーディオファイルまたはフォルダをインポートします";
+"library.no.content.description" = "+ボタンをタップしてオーディオファイルまたはフォルダをインポート";
+"library.empty.folder.title" = "空のフォルダ";
+"library.empty.folder.message" = "このフォルダは空です";
+"library.no.audio.files.title" = "オーディオファイルがありません";
+"library.empty.message" = "ライブラリが空です";
+"library.import.instructions" = "";
+"library.import.button.label" = "ボタンをタップしてオーディオファイルを追加";
 "breadcrumb.back" = "戻る";
 "breadcrumb.back.hint" = "親フォルダに戻る";
 

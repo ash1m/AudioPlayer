@@ -20,18 +20,24 @@
 "settings.build" = "Build";
 
 // Library view
-"library.title" = "Bibliothek";
+"library.title" = "Mediathek";
 "library.add" = "Hinzufügen";
 "library.add.hint" = "Öffnet die Dateiauswahl zum Importieren von Audiodateien oder Ordnern";
 "library.settings" = "Einstellungen";
-"library.settings.hint" = "Öffnet App-Einstellungen und Präferenzen";
+"library.settings.hint" = "Öffnet die App-Einstellungen und Voreinstellungen";
 "library.sort.by" = "Sortieren nach";
 "library.empty.folder" = "Leerer Ordner";
 "library.no.content" = "Kein Inhalt";
 "library.empty.folder.description" = "Dieser Ordner ist leer";
 "library.no.content.description" = "Tippen Sie auf die Schaltfläche +, um Audiodateien oder Ordner zu importieren";
+"library.empty.folder.title" = "Leerer Ordner";
+"library.empty.folder.message" = "Dieser Ordner ist leer";
+"library.no.audio.files.title" = "Keine Audiodateien";
+"library.empty.message" = "Ihre Mediathek ist leer";
+"library.import.instructions" = "Tippen Sie auf die";
+"library.import.button.label" = "Schaltfläche, um Audiodateien hinzuzufügen";
 "breadcrumb.back" = "Zurück";
-"breadcrumb.back.hint" = "Zum übergeordneten Ordner zurück";
+"breadcrumb.back.hint" = "Zum Überordner zurückgehen";
 
 // Context menu actions
 "action.mark.as.played" = "Als gespielt markieren";
