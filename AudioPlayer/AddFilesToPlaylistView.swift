@@ -269,8 +269,7 @@ struct AddFileRow: View {
                         .visualAccessibility(foreground: .secondary)
                     
                     // Original filename display
-                    Text(audioFile.fileName)
-                        .font(FontManager.font(.regular, size: 11))
+                    Text(audioFile.fileName ?? "Unknown")                        .font(FontManager.font(.regular, size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)

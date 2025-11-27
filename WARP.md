@@ -11,28 +11,28 @@ AudioPlayer is an iOS app built with **pure SwiftUI** that allows users to impor
 ### Building the App
 ```bash
 # Build for simulator (Debug) - Use available simulators
-xcodebuild -project AudioPlayer.xcodeproj -scheme AudioPlayer -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild -project FireVox.xcodeproj -scheme AudioPlayer -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
 # Alternative: Build for any iOS simulator
-xcodebuild -project AudioPlayer.xcodeproj -scheme AudioPlayer -configuration Debug -destination 'platform=iOS Simulator,name=Any iOS Simulator Device'
+xcodebuild -project FireVox.xcodeproj -scheme AudioPlayer -configuration Debug -destination 'platform=iOS Simulator,name=Any iOS Simulator Device'
 
 # Build for device (requires provisioning profile)
-xcodebuild -project AudioPlayer.xcodeproj -scheme AudioPlayer -configuration Release -destination 'generic/platform=iOS'
+xcodebuild -project FireVox.xcodeproj -scheme AudioPlayer -configuration Release -destination 'generic/platform=iOS'
 
 # Clean build folder
-xcodebuild clean -project AudioPlayer.xcodeproj -scheme AudioPlayer
+xcodebuild clean -project FireVox.xcodeproj -scheme AudioPlayer
 ```
 
 ### Testing
 ```bash
 # Run unit tests
-xcodebuild test -project AudioPlayer.xcodeproj -scheme AudioPlayer -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project FireVox.xcodeproj -scheme AudioPlayer -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
 # Run specific test class
-xcodebuild test -project AudioPlayer.xcodeproj -scheme AudioPlayer -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:AudioPlayerTests/AudioPlayerTests
+xcodebuild test -project FireVox.xcodeproj -scheme AudioPlayer -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:AudioPlayerTests/AudioPlayerTests
 
 # Run UI tests
-xcodebuild test -project AudioPlayer.xcodeproj -scheme AudioPlayerUITests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project FireVox.xcodeproj -scheme AudioPlayerUITests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
 # List available simulators
 xcrun simctl list devices available
@@ -41,7 +41,7 @@ xcrun simctl list devices available
 ### Opening in Xcode
 ```bash
 # Open project in Xcode
-open AudioPlayer.xcodeproj
+open FireVox.xcodeproj
 ```
 
 ## Architecture & Code Structure
@@ -433,3 +433,72 @@ Test the app with:
 - **Update Frequency**: Balance UI responsiveness with battery life; 1-second updates are usually sufficient
 - **Background Processing**: Minimize CPU-intensive operations when app is backgrounded
 - **Network Usage**: Cache metadata and artwork to reduce repeated network requests
+
+## Recent Changes & Design Decisions
+
+### Smart Grouping Display System (November 2025)
+- **Display-Time Grouping**: Implemented smart file grouping at display time, not import time
+  - **Pattern Matching**: Groups files with common naming patterns (e.g., "Book - Chapter 1", "Book - Chapter 2")
+  - **Minimum Threshold**: Requires minimum 3 files to qualify as a group
+  - **Flexible Display**: Single files and groups display seamlessly in the same view
+  - **Grouped Duration**: Shows total duration summed across all files in group
+  - **Individual File Preservation**: No reorganization of actual file storage or hierarchy
+
+### Expanded Player Drag Handle Implementation (November 2025)
+- **Fixed Draggable Handle**: Resolved issue with non-responsive drag handle in maximized player
+  - **Direct Gesture Application**: Added `highPriorityGesture` directly to drag handle component
+  - **Increased Touch Target**: Handle area expanded to 44pt for better accessibility
+  - **Gesture Priority**: Uses `highPriorityGesture` to override nested interactive element event handling
+  - **Separate Component**: Extracted `expandedPlayerDragHandle` as dedicated computed property
+  - **Functionality**: Minimizes on 50pt+ drag, dismisses on 150pt+ drag
+
+### Dynamic Progress Bar Width for Minimized Player (November 2025)
+- **Screen-Aware Sizing**: Progress bar width calculation now adapts to different device sizes
+  - **Dynamic Calculation**: Uses formula `screenWidth - (16 + 16 + 64 + 12)` for available width
+  - **State Management**: Screen width captured via GeometryReader in view body
+  - **Responsive Design**: Automatically adjusts for iPhone, iPad, and orientation changes
+  - **Previous Hardcoded Value**: Was 280.0pt, now truly dynamic
+  - **Formula Components**: Accounts for left/right padding (16pt each), button width (64pt), and spacing (12pt)
+
+### Continuous Playback for Grouped Files (November 2025)
+- **Queue-Based Playback**: Grouped files play sequentially without user intervention
+  - **AudioPlayerService Extension**: Added playback queue support for grouped file sets
+  - **Automatic Progression**: Plays next file when current finishes
+  - **Visual Feedback**: Progress indicator shows overall group progress
+  - **Resume Support**: Maintains playback position across group files
+  - **Control Center Integration**: Shows current file info in Control Center during group playback
+
+### Draggable Timestamp for Seeking (November 2025)
+- **Swipe to Seek**: Current time text in slide-up player now responds to drag gestures
+  - **Real-Time Feedback**: Drag calculation: 1 point = 0.5 seconds of audio
+  - **Bounds Clamping**: Seek position constrained between 0 and total duration
+  - **Accessibility**: Added accessibility hint "Drag to seek" for VoiceOver users
+  - **Responsive Feedback**: Visual updates during drag without state thrashing
+
+### Scroll-Based Artwork Rotation (November 2025)
+- **Subtle Animation**: Artwork rotates smoothly during library scrolling
+  - **Sine Wave Formula**: Rotation = initialRotation + (maxRotation * sin(scrollOffset/500 * π))
+  - **4-Degree Max Rotation**: Conservative animation to avoid visual distraction
+  - **Performance**: Uses preference keys to track scroll offset efficiently
+  - **Verified Working**: Confirmed feature operates as designed
+
+### Code Organization & Architecture (November 2025)
+- **Component Extraction**: Continued refactoring of complex view hierarchies
+  - **GlassMorphismButton**: Reusable button component with consistent styling
+  - **GlassButton**: Simplified button variant for settings and actions
+  - **Dedicated Handle Component**: `expandedPlayerDragHandle` extracted from inline code
+  - **Reduced View Nesting**: Simpler, more maintainable view structures
+
+### Build System Updates (November 2025)
+- **Project Structure**: Active project is FireVox.xcodeproj (AudioPlayer.xcodeproj missing project.pbxproj)
+  - **Build Command**: Use `FireVox.xcodeproj` for all xcodebuild commands
+  - **Scheme**: AudioPlayer scheme configured in FireVox.xcodeproj
+  - **Documentation**: Build commands in this file reference the working project structure
+
+### Artwork Format Support (November 2025)
+- **JPEG Handling**: App accepts and processes JPEG artwork from audio files
+  - **Embedded Artwork**: Extracts artwork data directly from audio metadata
+  - **File Storage**: Saves with .jpg extension regardless of source format
+  - **Format Flexibility**: Accepts embedded artwork in any format (PNG, GIF, etc.)
+  - **Fallback**: Displays music note icon if no artwork available
+  - **Optimization**: Artwork saves to dedicated Documents/Artwork directory

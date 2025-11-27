@@ -96,14 +96,7 @@ struct BreadcrumbNavigation: View {
 
 #Preview {
     let navigationManager = FolderNavigationManager()
-    // Simulate being in a nested folder
-    let context = PersistenceController.preview.container.viewContext
-    let rootFolder = Folder(context: context, name: "Music", path: "/Music")
-    let subFolder = Folder(context: context, name: "Albums", path: "/Music/Albums", parentFolder: rootFolder)
-    
-    navigationManager.navigateToFolder(rootFolder)
-    navigationManager.navigateToFolder(subFolder)
-    
-    return BreadcrumbNavigation(folderNavigationManager: navigationManager)
+    BreadcrumbNavigation(folderNavigationManager: navigationManager)
         .padding()
+        .environmentObject(AccessibilityManager())
 }

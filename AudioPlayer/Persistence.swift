@@ -15,21 +15,31 @@ struct PersistenceController {
         let viewContext = result.container.viewContext
         
         // Create some sample data for previews
-        let sampleAudioFile = AudioFile(
-            context: viewContext,
-            title: "Sample Song",
-            artist: "Sample Artist",
-            album: "Sample Album",
-            genre: "Rock",
-            duration: 240.0,
-            filePath: "sample.mp3",
-            fileName: "sample.mp3",
-            fileSize: 5000000
-        )
+        let sampleAudioFile = NSEntityDescription.insertNewObject(forEntityName: "AudioFile", into: viewContext) as! AudioFile
+        sampleAudioFile.id = UUID()
+        sampleAudioFile.title = "Sample Song"
+        sampleAudioFile.artist = "Sample Artist"
+        sampleAudioFile.album = "Sample Album"
+        sampleAudioFile.genre = "Rock"
+        sampleAudioFile.duration = 240.0
+        sampleAudioFile.filePath = "sample.mp3"
+        sampleAudioFile.fileName = "sample.mp3"
+        sampleAudioFile.fileSize = 5000000
+        sampleAudioFile.dateAdded = Date()
         
         // Create sample playlist
-        let samplePlaylist = Playlist(context: viewContext, name: "My Playlist")
-        let samplePlaylistItem = PlaylistItem(context: viewContext, audioFile: sampleAudioFile, playlist: samplePlaylist, order: 0)
+        let samplePlaylist = NSEntityDescription.insertNewObject(forEntityName: "Playlist", into: viewContext) as! Playlist
+        samplePlaylist.id = UUID()
+        samplePlaylist.name = "My Playlist"
+        samplePlaylist.dateCreated = Date()
+        samplePlaylist.dateModified = Date()
+        
+        let samplePlaylistItem = NSEntityDescription.insertNewObject(forEntityName: "PlaylistItem", into: viewContext) as! PlaylistItem
+        samplePlaylistItem.id = UUID()
+        samplePlaylistItem.audioFile = sampleAudioFile
+        samplePlaylistItem.playlist = samplePlaylist
+        samplePlaylistItem.order = 0
+        samplePlaylistItem.dateAdded = Date()
         
         do {
             try viewContext.save()

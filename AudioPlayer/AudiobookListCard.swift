@@ -24,10 +24,12 @@ struct AudiobookListCard: View {
     let onShare: ((AudioFile) -> Void)?
     let onSetCustomArtwork: ((AudioFile) -> Void)?
     let onRemoveCustomArtwork: ((AudioFile) -> Void)?
+    let totalGroupDuration: Double?  // Total duration if this represents a group of files
     
     @State private var dominantColor: Color = Color.gray.opacity(0.2)
     @State private var screenWidth: CGFloat = 390
     @State private var initialRotation: Double = 0
+    @State private var showContextMenu: Bool = false
     
     private let maxRotation: CGFloat = 4.0
     
@@ -47,17 +49,18 @@ struct AudiobookListCard: View {
     }
    
     private var infoTextWidth: CGFloat {
-        return screenWidth * 0.5
+        return screenWidth * 0.6
     }
 
-    private var marginWidth: CGFloat {
-        return screenWidth * 0.01
-    }
+    //private var marginWidth: CGFloat {
+     //   return screenWidth * 0.1
+    //}
 
     private var totalRowWidth: CGFloat {
-        // 50% image + 50% infotext + 20% margin (on one side for bleed)
-        return coverSize + infoTextWidth + (marginWidth)
+        // 40% image + 60% infotext + 10% margin (on one side for bleed)
+        return coverSize + infoTextWidth
     }
+    
 
     var body: some View {
         ZStack() {
@@ -74,15 +77,15 @@ struct AudiobookListCard: View {
                         .frame(width: infoTextWidth)
                     
                     // Right margin (bleeds off-screen)
-                    Color.clear
-                        .frame(width: marginWidth)
+                    //Color.clear
+                      //  .frame(width: marginWidth)
                         
     
                 }
                 else {
                     // Left margin (bleeds off-screen)
-                    Color.clear
-                        .frame(width: marginWidth)
+                    //Color.clear
+                     //   .frame(width: marginWidth)
                     
                     // InfoText (50%)
                     textSection
@@ -95,8 +98,9 @@ struct AudiobookListCard: View {
     
                 }
         }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding()
+        //.frame(maxWidth: .infinity, alignment: .center)
+            .padding()
+            
     }
     .onTapGesture(perform: onTap)
     .contextMenu {
@@ -171,6 +175,9 @@ struct AudiobookListCard: View {
             // Set random initial rotation between -4 and +4 degrees
             initialRotation = Double.random(in: -maxRotation...maxRotation)
         }
+        .onDisappear {
+            // no-op
+        }
         .task {
             if let artworkURL = audioFile.artworkURL {
                 let color = await DominantColorExtractor.shared.extractDominantColor(from: artworkURL)
@@ -230,39 +237,95 @@ struct AudiobookListCard: View {
     
     private var textSection: some View {
         VStack(alignment: .leading, spacing: 3) {
-            // Keep content left-aligned
-            Text(audioFile.title ?? audioFile.originalFileNameWithoutExtension)
-                .font(.custom("TiemposText-Bold", size: 24))
-                .foregroundColor(.white)
-                .lineLimit(2)
-                .truncationMode(.tail)
-            
-            Text(audioFile.artist ?? "Unknown Author")
-                .font(FontManager.fontWithSystemFallback(weight: .regular, size: 16))
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text(TimeInterval(audioFile.duration).formattedDuration)
-                    .font(FontManager.fontWithSystemFallback(weight: .regular, size: 14))
-                    .foregroundColor(.secondary)
+            // Header with title and menu button
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(audioFile.title ?? audioFile.originalFileNameWithoutExtension)
+                        .font(.custom("TiemposText-Bold", size: 24))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                    
+                    Text(audioFile.artist ?? "Unknown Author")
+                        .font(FontManager.fontWithSystemFallback(weight: .regular, size: 16))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    
+                    // Duration
+                    let displayDuration = totalGroupDuration ?? audioFile.duration
+                    Text(TimeInterval(displayDuration).formattedDuration)
+                        .font(FontManager.fontWithSystemFallback(weight: .regular, size: 14))
+                        .foregroundColor(.secondary)
+        
                 
-                if audioFile.duration > 0 {
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.secondary.opacity(0.3))
-                            .frame(height: 6)
-                        
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.blue)
-                            .frame(width: CGFloat(audioFile.currentPosition / audioFile.duration) * 220, height: 6)
+                // Three-dot menu button
+                Menu {
+                    // Playback actions
+                    Button(action: {
+                        onMarkAsPlayed?(audioFile)
+                    }) {
+                        Label("Mark as Played", systemImage: "checkmark.circle")
                     }
-                    .frame(height: 6)
+                    
+                    Button(action: {
+                        onResetProgress?(audioFile)
+                    }) {
+                        Label("Reset Progress", systemImage: "arrow.counterclockwise")
+                    }
+                    
+                    Divider()
+                    
+                    // Custom artwork actions
+                    Button(action: {
+                        onSetCustomArtwork?(audioFile)
+                    }) {
+                        Label("Set Custom Artwork", systemImage: "photo")
+                    }
+                    
+                    if onRemoveCustomArtwork != nil {
+                        Button(action: {
+                            onRemoveCustomArtwork?(audioFile)
+                        }) {
+                            Label("Remove Custom Artwork", systemImage: "photo")
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Sharing action
+                    Button(action: {
+                        onShare?(audioFile)
+                    }) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    
+                    Divider()
+                    
+                    // Destructive action
+                    Button(role: .destructive, action: { onDelete(audioFile) }) {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 44, height: 44)
+/*                        .background(
+                            ZStack {
+                                // Glass effect
+                                RoundedRectangle(cornerRadius: 22)
+                                    .fill(.ultraThinMaterial)
+                                
+                                // Subtle border
+                                RoundedRectangle(cornerRadius: 22)
+                                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                            }
+                        )*/
+                        .contentShape(Circle())
                 }
             }
             
-            Spacer()
+
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding()

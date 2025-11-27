@@ -23,6 +23,7 @@ extension String {
 extension AudioFile {
     /// Get the filename without extension for natural sorting
     var fileNameWithoutExtension: String {
+        guard let fileName = fileName else { return "" }
         return (fileName as NSString).deletingPathExtension
     }
     
@@ -47,7 +48,9 @@ extension Folder {
     var naturallyOrderedSubFolders: [Folder] {
         let set = subFolders as? Set<Folder> ?? []
         return Array(set).sorted { first, second in
-            return first.name.isNaturallyLessThan(second.name)
+            let firstName = first.name ?? ""
+            let secondName = second.name ?? ""
+            return firstName.isNaturallyLessThan(secondName)
         }
     }
 }

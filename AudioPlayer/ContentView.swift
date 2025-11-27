@@ -86,3 +86,4 @@ struct ContentView: View {
         .environmentObject(AccessibilityManager())
         .environmentObject(LocalizationManager.shared)
 }
+

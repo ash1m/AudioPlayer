@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23534" systemVersion="15.2" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="AudioFile" representedClassName="AudioFile" syncable="YES" codeGenerationType="class">
+        <attribute name="album" optional="YES" attributeType="String"/>
+        <attribute name="artist" optional="YES" attributeType="String"/>
+        <attribute name="artworkPath" optional="YES" attributeType="String"/>
+        <attribute name="currentPosition" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="dateAdded" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="duration" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="fileName" attributeType="String"/>
+        <attribute name="fileSize" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
+        <attribute name="filePath" attributeType="String"/>
+        <attribute name="genre" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lastPlayed" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="playCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="folder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="audioFiles" inverseEntity="Folder"/>
+        <relationship name="lastPlayedInFolders" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Folder" inverseName="lastPlayedAudioFile" inverseEntity="Folder"/>
+        <relationship name="playlistItems" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PlaylistItem" inverseName="audioFile" inverseEntity="PlaylistItem"/>
+    </entity>
+    <entity name="Folder" representedClassName="Folder" syncable="YES" codeGenerationType="class">
+        <attribute name="artworkPath" optional="YES" attributeType="String"/>
+        <attribute name="dateAdded" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="fileCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lastPlayedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastPlayedPosition" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="path" attributeType="String"/>
+        <relationship name="audioFiles" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AudioFile" inverseName="folder" inverseEntity="AudioFile"/>
+        <relationship name="lastPlayedAudioFile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioFile" inverseName="lastPlayedInFolders" inverseEntity="AudioFile"/>
+        <relationship name="parentFolder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="subFolders" inverseEntity="Folder"/>
+        <relationship name="subFolders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Folder" inverseName="parentFolder" inverseEntity="Folder"/>
+    </entity>
+    <entity name="Playlist" representedClassName="Playlist" syncable="YES" codeGenerationType="class">
+        <attribute name="dateCreated" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dateModified" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="playlistItems" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PlaylistItem" inverseName="playlist" inverseEntity="PlaylistItem"/>
+    </entity>
+    <entity name="PlaylistItem" representedClassName="PlaylistItem" syncable="YES" codeGenerationType="class">
+        <attribute name="dateAdded" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="order" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="audioFile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioFile" inverseName="playlistItems" inverseEntity="AudioFile"/>
+        <relationship name="playlist" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Playlist" inverseName="playlistItems" inverseEntity="Playlist"/>
+    </entity>
+    <elements>
+        <element name="AudioFile" positionX="-63" positionY="-18" width="128" height="299"/>
+        <element name="Folder" positionX="171" positionY="-27" width="128" height="224"/>
+        <element name="Playlist" positionX="-27" positionY="72" width="128" height="104"/>
+        <element name="PlaylistItem" positionX="171" positionY="81" width="128" height="119"/>
+    </elements>
+</model>

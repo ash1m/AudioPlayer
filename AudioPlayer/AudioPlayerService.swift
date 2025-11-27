@@ -48,6 +48,11 @@ class AudioPlayerService: NSObject, ObservableObject {
     // MARK: - Folder Playback Properties
     private var currentFolder: Folder?
     
+    // MARK: - Grouped Files Playback Properties
+    @Published var groupedFilesQueue: [AudioFile] = []
+    @Published var currentGroupedFileIndex: Int = 0
+    @Published var isPlayingFromGroup = false
+    
     override init() {
         super.init()
         setupAudioSession()
@@ -438,13 +443,14 @@ class AudioPlayerService: NSObject, ObservableObject {
             // Use folder progress for Control Center - validate values
             displayDuration = max(folderTotalDuration, 0.1)  // Ensure positive duration
             displayElapsedTime = max(min(folderCurrentTime, folderTotalDuration), 0.0)  // Clamp within bounds
-            displayAlbumTitle = folder.name.isEmpty ? "Folder" : folder.name
+            let folderName = folder.name ?? "Folder"
+            displayAlbumTitle = folderName.isEmpty ? "Folder" : folderName
             print("📁 Using folder progress in Now Playing - \(Int(displayElapsedTime))/\(Int(displayDuration))")
         } else {
             // Use individual file progress - validate values
             displayDuration = max(duration, 0.1)  // Ensure positive duration
             displayElapsedTime = max(min(actualCurrentTime, displayDuration), 0.0)  // Clamp within bounds
-            displayAlbumTitle = audioFile.album?.isEmpty == false ? audioFile.album! : "AudioPlayer"
+            displayAlbumTitle = (audioFile.album ?? "").isEmpty ? "AudioPlayer" : (audioFile.album ?? "AudioPlayer")
         }
         
         // Use more standard media type
@@ -526,11 +532,16 @@ class AudioPlayerService: NSObject, ObservableObject {
     
     // MARK: - Playbook Control
     
-    func loadAudioFile(_ audioFile: AudioFile, context: NSManagedObjectContext? = nil) {
+    func loadAudioFile(_ audioFile: AudioFile, context: NSManagedObjectContext? = nil, clearGroupState: Bool = true) {
         self.viewContext = context
         
         // Save current position before switching to new file
         saveCurrentPosition()
+        
+        // Clear group playback state when loading a single file (unless we're part of group playback)
+        if clearGroupState {
+            stopGroupPlayback()
+        }
         
         guard let fileURL = audioFile.fileURL else {
             print("Invalid file URL for audio file: \(audioFile.fileName)")
@@ -753,7 +764,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Update current folder position (throttle expensive calculations)
         let actualCurrentTime = player?.currentTime().seconds ?? currentTime
-        let newFolderCurrentTime = folder.getCurrentFolderPosition(currentFile: currentFile, currentTime: actualCurrentTime)
+        let newFolderCurrentTime = folder.getCurrentFolderPosition()
         
         // Only update if significant change (reduce @Published updates)
         if abs(folderCurrentTime - newFolderCurrentTime) > 0.5 {
@@ -840,7 +851,13 @@ class AudioPlayerService: NSObject, ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     var playedNext = false
                     
-                    if self?.isPlayingFromPlaylist == true {
+                    if self?.isPlayingFromGroup == true {
+                        playedNext = self?.playNextInGroup() ?? false
+                        if !playedNext {
+                            // No next track available, stop group playback
+                            self?.stopGroupPlayback()
+                        }
+                    } else if self?.isPlayingFromPlaylist == true {
                         playedNext = self?.playNext() ?? false
                         if !playedNext {
                             // No next track available, stop playlist playback
@@ -867,7 +884,8 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Also save folder state if playing from a folder
         if isPlayingFromFolder, let folder = currentFolder {
-            folder.savePlaybackState(audioFile: audioFile, position: currentTime)
+            folder.savePlaybackState(position: currentTime)
+            folder.lastPlayedAudioFile = audioFile
         }
         
         try? viewContext?.save()
@@ -945,7 +963,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         var audioFileToPlay: AudioFile?
         var resumePosition: Double = 0.0
         
-        if resumeFromSavedState && folder.hasPlaybackState {
+        if resumeFromSavedState && folder.hasPlaybackState() {
             // Resume from saved state
             audioFileToPlay = folder.getResumeAudioFile()
             resumePosition = folder.getResumePosition()
@@ -1003,6 +1021,59 @@ class AudioPlayerService: NSObject, ObservableObject {
     func stopFolderPlayback() {
         isPlayingFromFolder = false
         currentFolder = nil
+    }
+    
+    // MARK: - Grouped Files Playback Methods
+    
+    func playGroupedFiles(_ files: [AudioFile], context: NSManagedObjectContext) {
+        playGroupedFiles(files, startingAt: 0, context: context)
+    }
+    
+    func playGroupedFiles(_ files: [AudioFile], startingAt index: Int, context: NSManagedObjectContext) {
+        guard !files.isEmpty else { return }
+        guard index >= 0 && index < files.count else { return }
+        
+        // Clear other playback states
+        stopPlaylistPlayback()
+        stopFolderPlayback()
+        
+        self.groupedFilesQueue = files
+        self.currentGroupedFileIndex = index
+        self.isPlayingFromGroup = true
+        
+        // Load and play the file at the specified index (don't clear group state)
+        loadAudioFile(files[index], context: context, clearGroupState: false)
+        play()
+    }
+    
+    func playNextInGroup() -> Bool {
+        guard isPlayingFromGroup else { return false }
+        
+        let nextIndex = currentGroupedFileIndex + 1
+        guard nextIndex < groupedFilesQueue.count else { return false }
+        
+        currentGroupedFileIndex = nextIndex
+        loadAudioFile(groupedFilesQueue[nextIndex], context: viewContext, clearGroupState: false)
+        play()
+        return true
+    }
+    
+    func playPreviousInGroup() -> Bool {
+        guard isPlayingFromGroup else { return false }
+        
+        let previousIndex = currentGroupedFileIndex - 1
+        guard previousIndex >= 0 else { return false }
+        
+        currentGroupedFileIndex = previousIndex
+        loadAudioFile(groupedFilesQueue[previousIndex], context: viewContext, clearGroupState: false)
+        play()
+        return true
+    }
+    
+    func stopGroupPlayback() {
+        isPlayingFromGroup = false
+        groupedFilesQueue = []
+        currentGroupedFileIndex = 0
     }
     
     func clearCurrentFile() {

@@ -76,14 +76,15 @@ class FolderNavigationManager: ObservableObject {
     // Get breadcrumb titles for navigation
     var breadcrumbTitles: [String] {
         var titles = ["Library"]
-        titles.append(contentsOf: navigationPath.map { $0.name })
+        titles.append(contentsOf: navigationPath.compactMap { $0.name })
         return titles
     }
     
     // Get current location description for accessibility
     var currentLocationDescription: String {
         if let currentFolder = currentFolder {
-            return "Currently in folder: \(currentFolder.name)"
+            let folderName = currentFolder.name ?? "Unknown Folder"
+            return "Currently in folder: \(folderName)"
         } else {
             return "Currently in main library"
         }
@@ -111,7 +112,9 @@ extension FolderNavigationManager {
             let folders = try context.fetch(request)
             // Sort naturally by folder name
             return folders.sorted { first, second in
-                return first.name.isNaturallyLessThan(second.name)
+                let firstName = first.name ?? ""
+                let secondName = second.name ?? ""
+                return firstName.isNaturallyLessThan(secondName)
             }
         } catch {
             print("Error fetching folders: \(error)")

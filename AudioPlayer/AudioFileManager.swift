@@ -83,10 +83,8 @@ class AudioFileManager: ObservableObject {
             }
         }
         
-        // Analyze individual files for smart grouping by filename patterns
-        let smartGroups = await MainActor.run { analyzeFilesForSmartGrouping(individualFiles, context: context) }
-        
-        // Import individual files with smart grouping
+        // Import individual files without smart folder grouping
+        // Smart grouping will be done at display time instead
         for fileURL in individualFiles {
             // Start accessing security-scoped resource for individual files
             let isAccessing = fileURL.startAccessingSecurityScopedResource()
@@ -103,25 +101,13 @@ class AudioFileManager: ObservableObject {
                 // Check for duplicates
                 try validateNoDuplicate(url: fileURL, existingNames: existingFileNames)
                 
-                // Determine if this file should go in a smart folder
-                let smartFolder = smartGroups.first { group in
-                    group.fileURLs.contains(fileURL)
-                }?.folder
-                
-                // Import the file with or without smart folder association
-                try await importSingleAudioFile(url: fileURL, folder: smartFolder, context: context)
+                // Import the file without folder association
+                try await importSingleAudioFile(url: fileURL, folder: nil, context: context)
                 results.append(ImportResult(url: fileURL, success: true))
                 
             } catch {
                 let failureReason = (error as? ImportError)?.errorDescription ?? error.localizedDescription
                 results.append(ImportResult(url: fileURL, success: false, error: error, failureReason: failureReason))
-            }
-        }
-        
-        // Update smart folder file counts
-        for smartGroup in smartGroups {
-            await MainActor.run {
-                smartGroup.folder.updateFileCount()
             }
         }
         
@@ -368,7 +354,12 @@ class AudioFileManager: ObservableObject {
         }
         
         // Create new folder
-        let folder = Folder(context: context, name: name, path: path, parentFolder: parentFolder)
+        let folder = NSEntityDescription.insertNewObject(forEntityName: "Folder", into: context) as! Folder
+        folder.id = UUID()
+        folder.name = name
+        folder.path = path
+        folder.parentFolder = parentFolder
+        folder.dateAdded = Date()
         return folder
     }
     
@@ -469,18 +460,39 @@ class AudioFileManager: ObservableObject {
         let baseName = fileName.replacingOccurrences(of: ".\(fileExtension)", with: "")
         let uniqueFileName = "\(UUID().uuidString)_\(baseName).\(fileExtension)"
         
+        print("\n📝 IMPORT DEBUG:")
+        print("   Original filename: \(fileName)")
+        print("   Extension: \(fileExtension)")
+        print("   Base name: \(baseName)")
+        print("   Generated unique filename: \(uniqueFileName)")
+        
         // Get the documents directory
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             throw FileManagerError.documentsDirectoryNotFound
         }
+        print("   Documents directory: \(documentsDirectory.path)")
+        
         let localURL = documentsDirectory.appendingPathComponent(uniqueFileName)
+        print("   Target local URL: \(localURL.path)")
         
         // Copy the file to the documents directory with error handling
         do {
             try FileManager.default.copyItem(at: url, to: localURL)
-            print("Successfully copied file to: \(localURL.path)")
+            print("✅ Successfully copied file to: \(localURL.path)")
+            
+            // Verify the file actually exists at the expected location
+            let fileExists = FileManager.default.fileExists(atPath: localURL.path)
+            print("   Verification - File exists at target: \(fileExists)")
+            
+            if fileExists {
+                // Check file size
+                if let attributes = try? FileManager.default.attributesOfItem(atPath: localURL.path),
+                   let fileSize = attributes[.size] as? Int64 {
+                    print("   File size: \(fileSize) bytes")
+                }
+            }
         } catch {
-            print("Failed to copy file from \(url.path) to \(localURL.path): \(error)")
+            print("❌ Failed to copy file from \(url.path) to \(localURL.path): \(error)")
             throw error
         }
         
@@ -490,18 +502,27 @@ class AudioFileManager: ObservableObject {
         
         // Create the AudioFile entity
         await MainActor.run {
-            let audioFile = AudioFile(
-                context: context,
-                title: metadata.title ?? baseName,
-                artist: metadata.artist,
-                album: metadata.album,
-                genre: metadata.genre,
-                duration: metadata.duration,
-                filePath: uniqueFileName,
-                fileName: fileName,
-                fileSize: metadata.fileSize
-            )
+            let audioFile = NSEntityDescription.insertNewObject(forEntityName: "AudioFile", into: context) as! AudioFile
+            audioFile.id = UUID()
+            audioFile.title = metadata.title ?? baseName
+            audioFile.artist = metadata.artist
+            audioFile.album = metadata.album
+            audioFile.genre = metadata.genre
+            audioFile.duration = metadata.duration
+            // Store ONLY the filename (not the full path) - we'll reconstruct the Documents path at playback time
+            // This avoids issues with app container paths changing between launches
+            audioFile.filePath = uniqueFileName
+            audioFile.fileName = fileName
+            audioFile.fileSize = metadata.fileSize
+            audioFile.dateAdded = Date()
+            audioFile.currentPosition = 0
+            audioFile.playCount = 0
             audioFile.artworkPath = artworkPath
+            
+            print("✅ Audio file imported: \(fileName)")
+            print("   Stored filename (relative): \(uniqueFileName)")
+            print("   Full path (for verification): \(localURL.path)")
+            print("   File exists: \(FileManager.default.fileExists(atPath: localURL.path))")
             
             // Associate with folder if provided
             if let folder = folder {
@@ -614,7 +635,10 @@ class AudioFileManager: ObservableObject {
         
         do {
             try data.write(to: artworkURL)
-            return "Artwork/\(artworkFileName)"
+            // Store only the Artwork/filename (relative), not the full absolute path
+            // This avoids issues with app container paths changing between launches
+            let relativeArtworkPath = "Artwork/\(artworkFileName)"
+            return relativeArtworkPath
         } catch {
             print("Failed to save artwork: \(error)")
             return nil
@@ -762,7 +786,9 @@ class AudioFileManager: ObservableObject {
         
         // Update audio file entity
         await MainActor.run {
-            audioFile.artworkPath = "Artwork/\(artworkFileName)"
+            // Store only the relative path (Artwork/filename), not the full absolute path
+            let relativeArtworkPath = "Artwork/\(artworkFileName)"
+            audioFile.artworkPath = relativeArtworkPath
             
             do {
                 try context.save()
@@ -826,7 +852,7 @@ class AudioFileManager: ObservableObject {
         }
         
         // Create unique filename for new custom folder artwork
-        let folderName = folder.name.replacingOccurrences(of: "/", with: "_")
+        let folderName = (folder.name ?? "Folder").replacingOccurrences(of: "/", with: "_")
         let artworkFileName = "custom_folder_\(UUID().uuidString)_\(folderName).jpg"
         let artworkURL = artworkDirectory.appendingPathComponent(artworkFileName)
         
@@ -835,7 +861,9 @@ class AudioFileManager: ObservableObject {
         
         // Update folder entity
         await MainActor.run {
-            folder.artworkPath = "Artwork/\(artworkFileName)"
+            // Store only the relative path (Artwork/filename), not the full absolute path
+            let relativeArtworkPath = "Artwork/\(artworkFileName)"
+            folder.artworkPath = relativeArtworkPath
             
             do {
                 try context.save()

@@ -24,6 +24,8 @@ struct SlideUpPlayerView: View {
     @State private var isShowingSpeedOptions = false
     @State private var isShowingSleepTimer = false
     @State private var isShowingPlaylist = false
+    @State private var isShowingGroupFiles = false
+    @State private var screenWidth: CGFloat = 0
     
     // Cached computed properties to reduce body computation
     @State private var cachedMiniPlayerLabel = ""
@@ -59,6 +61,12 @@ struct SlideUpPlayerView: View {
                     //.animation(.spring(response: 0.3, dampingFraction: 0.8), value: dragOffset)
                     .gesture(dragGesture)
             }
+            .onAppear {
+                screenWidth = geometry.size.width
+            }
+            .onChange(of: geometry.size.width) { oldValue, newValue in
+                screenWidth = newValue
+            }
         }
         .ignoresSafeArea(.all, edges: .bottom)
         .sheet(isPresented: $isShowingSleepTimer) {
@@ -66,6 +74,11 @@ struct SlideUpPlayerView: View {
         }
         .sheet(isPresented: $isShowingPlaylist) {
             PlaylistView()
+        }
+        .sheet(isPresented: $isShowingGroupFiles) {
+            if audioPlayerService.isPlayingFromGroup && !audioPlayerService.groupedFilesQueue.isEmpty {
+                GroupFilesListView(files: audioPlayerService.groupedFilesQueue, currentIndex: audioPlayerService.currentGroupedFileIndex)
+            }
         }
         .confirmationDialog("Playback Speed", isPresented: $isShowingSpeedOptions, titleVisibility: .visible) {
             speedDialogButtons
@@ -154,6 +167,7 @@ struct SlideUpPlayerView: View {
                 // Progress bar (takes most space)
                 progressBarMinimized
                     .frame(height: 44)
+                    .animation(.linear(duration: 0.3), value: progressWidthMinimized)
                     .accessibilityHidden(true)
                 
                 // Play/Pause button
@@ -184,17 +198,19 @@ struct SlideUpPlayerView: View {
     private var expandedPlayer: some View {
         AccessibleExpandedPlayer {
             VStack(spacing: 16) {
-                // Drag handle at top
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white.opacity(0.3))
-                    .frame(width: 80, height: 5)
-                    .accessibilityHidden(true)
+                // Drag handle at top - now with gesture
+                expandedPlayerDragHandle
                 
                 // Main content with adaptive spacing
                 VStack(spacing: 16) {
                     // Book artwork with overlay details
                     artworkBackground
                         .frame(width: 280, height: 280)
+                    
+                    // Group files indicator (for audiobooks)
+                    if audioPlayerService.isPlayingFromGroup && !audioPlayerService.groupedFilesQueue.isEmpty {
+                        groupFilesIndicator
+                    }
                     
                     // Book Details
                     bookDetailsOverlay
@@ -208,9 +224,9 @@ struct SlideUpPlayerView: View {
                     // Bottom options (Sleep/Speed)
                     bottomOptions
                 }
-                .padding(.top)
+                //.padding(.bottom)
                 
-               //Spacer(minLength: 20) // Flexible bottom spacing
+               Spacer(minLength: 10) // Flexible bottom spacing
             }
         } onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -218,6 +234,36 @@ struct SlideUpPlayerView: View {
                 accessibilityManager.announceMessage("Player minimized")
             }
         }
+    }
+    
+    private var expandedPlayerDragHandle: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(Color.white.opacity(0.3))
+            .frame(width: 80, height: 5)
+            .frame(height: 44) // Increase touch target
+            .contentShape(Rectangle()) // Make entire area draggable
+            .accessibilityHidden(true)
+            .highPriorityGesture(
+                DragGesture()
+                    .onChanged { value in
+                        let translation = value.translation.height
+                        dragOffset = translation
+                    }
+                    .onEnded { value in
+                        let translation = value.translation.height
+                        withAnimation(.spring(response: 0.8, dampingFraction: 0.9, blendDuration: 0.5)) {
+                            // Minimize if dragged down
+                            if translation > 50 {
+                                playerState = .minimized
+                            }
+                            // Dismiss if dragged down very far
+                            else if translation > 150 {
+                                audioPlayerService.clearCurrentFile()
+                            }
+                        }
+                        dragOffset = 0
+                    }
+            )
     }
     
     
@@ -294,6 +340,19 @@ struct SlideUpPlayerView: View {
                     .font(FontManager.font(.regular, size: 17))
                     .foregroundColor(.white)
                     .accessibilityLabel("Current time \(formatTimeForAccessibility(displayCurrentTime))")
+                    .accessibilityHint("Drag to seek")
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                // Calculate new time based on drag offset
+                                // 1 point of drag = 0.5 seconds of audio
+                                let dragAmount = value.translation.width
+                                let timeOffset = dragAmount * 0.5
+                                let newTime = max(0, min(displayCurrentTime + timeOffset, displayTotalDuration))
+                                audioPlayerService.seek(to: newTime)
+                            }
+                    )
                 
                 Spacer()
                 
@@ -523,6 +582,31 @@ struct SlideUpPlayerView: View {
         .frame(width: 252)
     }
     
+    private var groupFilesIndicator: some View {
+        let currentNum = audioPlayerService.currentGroupedFileIndex + 1
+        let totalNum = audioPlayerService.groupedFilesQueue.count
+        let playingText = "Playing \(currentNum) of \(totalNum)"
+        
+        return Button(action: { isShowingGroupFiles = true }) {
+            HStack() {
+                
+                Text(playingText)
+                    .font(FontManager.font(.regular, size: 16))
+                                
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.15))
+            .cornerRadius(12)
+        }
+        .accessibilityLabel("Audiobook files")
+        .accessibilityValue("Playing file \(currentNum) of \(totalNum)")
+        .accessibilityHint("Open list of all files in this audiobook")
+    }
+    
     // MARK: - Computed Properties
     
     // Folder-aware display properties
@@ -557,8 +641,8 @@ struct SlideUpPlayerView: View {
     
     private var progressWidthMinimized: CGFloat {
         guard displayTotalDuration > 0 else { return 6 }
-        let availableWidth = 280.0 // Approximate width, will be adjusted by frame
-        return max(6, availableWidth * displayProgress)
+        let availableWidth = screenWidth - (16 + 16 + 64 + 12) // left padding + right padding + button width + spacing
+        return max(6, max(0, availableWidth) * displayProgress)
     }
     
     private func playerHeight(geometry: GeometryProxy) -> CGFloat {

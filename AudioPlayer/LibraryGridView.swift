@@ -46,6 +46,7 @@ struct LibraryGridView: View {
     @State private var isShowingDetailedResults = false
     @State private var isImporting = false
     @State private var sortOption: SortOption = .fileName
+    @State private var displayItems: [DisplayItem] = []
     
     // Performance optimization - reduce view rebuilds
     @State private var lastContentRefresh: CFTimeInterval = 0
@@ -53,6 +54,39 @@ struct LibraryGridView: View {
     
     // Scroll tracking for rotation effect
     @State private var scrollOffset: CGFloat = 0
+    
+    // MARK: - Display Item Structure for Grouping
+    enum DisplayItem: Identifiable {
+        case file(AudioFile)
+        case group(groupedFiles: [AudioFile], groupName: String, firstFile: AudioFile)
+        
+        var id: String {
+            switch self {
+            case .file(let file):
+                return file.id?.uuidString ?? UUID().uuidString
+            case .group(let files, _, _):
+                return files.map { $0.id?.uuidString ?? UUID().uuidString }.joined(separator: ",")
+            }
+        }
+        
+        var asAudioFile: AudioFile? {
+            switch self {
+            case .file(let file):
+                return file
+            case .group(_, _, let firstFile):
+                return firstFile
+            }
+        }
+        
+        var groupedFiles: [AudioFile]? {
+            switch self {
+            case .file:
+                return nil
+            case .group(let files, _, _):
+                return files
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -490,27 +524,72 @@ struct LibraryGridView: View {
     
     private var audioBookListView: some View {
         LazyVStack(spacing: 20) {
-            ForEach(Array(audioFiles.enumerated()), id: \.element.self) { index, audioFile in
-                AudiobookListCard(
-                    audioFile: audioFile,
-                    rowIndex: index,
-                    scrollOffset: scrollOffset,
-                    onDelete: deleteAudioFile,
-                    onTap: { handleAudioFileSelection(audioFile) },
-                    onMarkAsPlayed: markAsPlayed,
-                    onResetProgress: resetProgress,
-                    onShare: shareAudioFile,
-                    onSetCustomArtwork: setCustomArtwork,
-                    onRemoveCustomArtwork: removeCustomArtwork
-                )
-                .transition(.asymmetric(
-                    insertion: .opacity,
-                    removal: .opacity.combined(with: .scale(scale: 0.8))
-                ))
+            ForEach(Array(displayItems.enumerated()), id: \.element.id) { index, displayItem in
+                if let audioFile = displayItem.asAudioFile {
+                    AudiobookListCard(
+                        audioFile: audioFile,
+                        rowIndex: index,
+                        scrollOffset: scrollOffset,
+                        onDelete: { file in
+                            // Handle delete for group or single file
+                            if let groupedFiles = displayItem.groupedFiles {
+                                // Delete all files in the group
+                                for f in groupedFiles {
+                                    deleteAudioFile(f)
+                                }
+                            } else {
+                                deleteAudioFile(file)
+                            }
+                        },
+                        onTap: {
+                            // Handle tap for group or single file
+                            if let groupedFiles = displayItem.groupedFiles {
+                                // Load and play all files in sequence
+                                handleGroupedFileSelection(groupedFiles)
+                            } else {
+                                handleAudioFileSelection(audioFile)
+                            }
+                        },
+                        onMarkAsPlayed: { file in
+                            if let groupedFiles = displayItem.groupedFiles {
+                                groupedFiles.forEach { markAsPlayed($0) }
+                            } else {
+                                markAsPlayed(file)
+                            }
+                        },
+                        onResetProgress: { file in
+                            if let groupedFiles = displayItem.groupedFiles {
+                                groupedFiles.forEach { resetProgress($0) }
+                            } else {
+                                resetProgress(file)
+                            }
+                        },
+                        onShare: { file in
+                            shareAudioFile(file)
+                        },
+                        onSetCustomArtwork: { file in
+                            setCustomArtwork(file)
+                        },
+                        onRemoveCustomArtwork: { file in
+                            removeCustomArtwork(file)
+                        },
+                        totalGroupDuration: displayItem.groupedFiles?.reduce(0) { $0 + $1.duration }
+                    )
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .opacity.combined(with: .scale(scale: 0.8))
+                    ))
+                }
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
+    }
+    
+    private func handleGroupedFileSelection(_ files: [AudioFile]) {
+        // Load and play all grouped files with continuous playback
+        audioPlayerService.playGroupedFiles(files, context: viewContext)
+        navigateToPlayer()
     }
     
     private var sortByMenu: some View {
@@ -592,17 +671,130 @@ struct LibraryGridView: View {
                 return firstArtist.isNaturallyLessThan(secondArtist)
             }
         case .dateAdded:
-            unsortedAudioFiles.sort { ($0.dateAdded) > ($1.dateAdded) }
+            unsortedAudioFiles.sort { ($0.dateAdded ?? Date.distantPast) > ($1.dateAdded ?? Date.distantPast) }
         case .duration:
             unsortedAudioFiles.sort { $0.duration > $1.duration }
         }
         
         audioFiles = unsortedAudioFiles
         
+        // Create display items with smart grouping
+        displayItems = groupFilesForDisplay(unsortedAudioFiles)
+        print("📊 Created \(displayItems.count) display items (grouped + individual)")
+        
         // Reset loading flag asynchronously to prevent rapid successive calls
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             isContentLoading = false
         }
+    }
+    
+    // MARK: - Smart Grouping for Display
+    
+    private func groupFilesForDisplay(_ files: [AudioFile]) -> [DisplayItem] {
+        var displayItems: [DisplayItem] = []
+        var processedFiles: Set<UUID> = []
+        
+        // Find groups of files with common patterns
+        for file in files {
+            guard !processedFiles.contains(file.safeID) else { continue }
+            
+            let potentialGroup = findRelatedFiles(file, from: files, excluding: processedFiles)
+            
+            if potentialGroup.count >= 3 {
+                // Create a group
+                let groupName = extractCommonName(from: potentialGroup)
+                let sortedGroup = potentialGroup.sorted { a, b in
+                    a.displayNameForSorting.isNaturallyLessThan(b.displayNameForSorting)
+                }
+                let displayItem = DisplayItem.group(groupedFiles: sortedGroup, groupName: groupName, firstFile: sortedGroup.first!)
+                displayItems.append(displayItem)
+                sortedGroup.forEach { processedFiles.insert($0.safeID) }
+            } else {
+                // Single file
+                let displayItem = DisplayItem.file(file)
+                displayItems.append(displayItem)
+                processedFiles.insert(file.safeID)
+            }
+        }
+        
+        return displayItems
+    }
+    
+    private func findRelatedFiles(_ file: AudioFile, from allFiles: [AudioFile], excluding processed: Set<UUID>) -> [AudioFile] {
+        guard let fileName = file.fileName else { return [file] }
+        let nameWithoutExtension = fileName.components(separatedBy: ".").first ?? ""
+        let patterns = extractCommonPatterns(from: nameWithoutExtension)
+        
+        var relatedFiles = [file]
+        
+        for otherFile in allFiles {
+            guard !processed.contains(otherFile.safeID) && otherFile.safeID != file.safeID else { continue }
+            
+            guard let otherFileName = otherFile.fileName else { continue }
+            let otherName = otherFileName.components(separatedBy: ".").first ?? ""
+            let otherPatterns = extractCommonPatterns(from: otherName)
+            
+            // Check if they share common patterns
+            let commonPatterns = Set(patterns).intersection(Set(otherPatterns))
+            if !commonPatterns.isEmpty {
+                relatedFiles.append(otherFile)
+            }
+        }
+        
+        return relatedFiles
+    }
+    
+    private func extractCommonPatterns(from filename: String) -> [String] {
+        var patterns: [String] = []
+        let lowercased = filename.lowercased()
+        
+        let cleanedName = lowercased
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+        
+        let words = cleanedName.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty && $0.count > 2 }
+            .filter { word in
+                let meaninglessWords = ["the", "and", "or", "of", "to", "in", "for", "with", "by", "at", "on", "as", "is", "was", "are", "were", "ch", "cd"]
+                return !meaninglessWords.contains(word) && !word.allSatisfy { $0.isNumber }
+            }
+        
+        for i in 0..<words.count {
+            if words[i].count >= 4 {
+                patterns.append(words[i])
+            }
+            if i < words.count - 1 {
+                patterns.append("\(words[i]) \(words[i + 1])")
+            }
+        }
+        
+        return patterns
+    }
+    
+    private func extractCommonName(from files: [AudioFile]) -> String {
+        guard !files.isEmpty else { return "Untitled" }
+        guard let firstName = files.first?.fileName else { return "Group" }
+        let firstFile = firstName.components(separatedBy: ".").first ?? "Group"
+        let lastName = files.last?.fileName?.components(separatedBy: ".").first ?? ""
+        
+        // Try to find common prefix
+        let minLength = min(firstFile.count, lastName.count)
+        var commonLength = 0
+        for i in 0..<minLength {
+            let firstIndex = firstFile.index(firstFile.startIndex, offsetBy: i)
+            let lastIndex = lastName.index(lastName.startIndex, offsetBy: i)
+            if firstFile[firstIndex] == lastName[lastIndex] {
+                commonLength = i + 1
+            } else {
+                break
+            }
+        }
+        
+        if commonLength > 0 {
+            let commonPrefix = String(firstFile.prefix(commonLength)).trimmingCharacters(in: CharacterSet(charactersIn: " -_"))
+            return commonPrefix.isEmpty ? "Group" : commonPrefix
+        }
+        return "Group"
     }
     
     private func refreshContent() {

@@ -35,7 +35,11 @@ class PlaylistManager: ObservableObject {
                 currentPlaylist = existingPlaylist
             } else {
                 // Create default playlist
-                let newPlaylist = Playlist(context: viewContext, name: "My Playlist")
+                let newPlaylist = NSEntityDescription.insertNewObject(forEntityName: "Playlist", into: viewContext) as! Playlist
+                newPlaylist.id = UUID()
+                newPlaylist.name = "My Playlist"
+                newPlaylist.dateCreated = Date()
+                newPlaylist.dateModified = Date()
                 try viewContext.save()
                 currentPlaylist = newPlaylist
             }
@@ -61,12 +65,12 @@ class PlaylistManager: ObservableObject {
             }
             
             if !isAlreadyInPlaylist {
-                _ = PlaylistItem(
-                    context: viewContext,
-                    audioFile: audioFile,
-                    playlist: playlist,
-                    order: nextOrder
-                )
+                let newItem = NSEntityDescription.insertNewObject(forEntityName: "PlaylistItem", into: viewContext) as! PlaylistItem
+                newItem.id = UUID()
+                newItem.audioFile = audioFile
+                newItem.playlist = playlist
+                newItem.order = nextOrder
+                newItem.dateAdded = Date()
                 nextOrder += 1
             }
         }

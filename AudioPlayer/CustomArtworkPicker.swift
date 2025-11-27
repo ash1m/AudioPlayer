@@ -8,6 +8,7 @@
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import Photos
 
 struct CustomArtworkPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
@@ -37,12 +38,60 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
         }
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            guard let image = info[.originalImage] as? UIImage else {
-                parent.onError("Could not load selected image")
-                parent.isPresented = false
+            print("📸 imagePickerController called with keys: \(info.keys.map { $0.rawValue })")
+            
+            // Try multiple sources for the picked image
+            if let image = info[.originalImage] as? UIImage {
+                print("✅ Got image from .originalImage (local file)")
+                handlePicked(image: image)
                 return
             }
+            print("⚠️ .originalImage was nil")
             
+            if let edited = info[.editedImage] as? UIImage {
+                print("✅ Got image from .editedImage (user cropped)")
+                handlePicked(image: edited)
+                return
+            }
+            print("⚠️ .editedImage was nil")
+            
+            if let url = info[.imageURL] as? URL {
+                print("📁 Found .imageURL: \(url.lastPathComponent)")
+                if let data = try? Data(contentsOf: url), let img = UIImage(data: data) {
+                    print("✅ Got image from .imageURL (local file)")
+                    handlePicked(image: img)
+                    return
+                }
+                print("❌ Failed to load data from .imageURL")
+            }
+            print("⚠️ .imageURL was nil")
+            
+            if let asset = info[.phAsset] as? PHAsset {
+                print("📷 Got PHAsset (possibly iCloud)")
+                let opts = PHImageRequestOptions()
+                opts.isNetworkAccessAllowed = true
+                opts.deliveryMode = .highQualityFormat
+                // Use async request; close picker in completion
+                PHImageManager.default().requestImageDataAndOrientation(for: asset, options: opts) { data, _, _, _ in
+                    if let data, let img = UIImage(data: data) {
+                        print("✅ Got image from PHAsset")
+                        self.handlePicked(image: img)
+                    } else {
+                        print("❌ Failed to load PHAsset (iCloud not available)")
+                        self.parent.onError("Could not load selected image (iCloud asset not available). Please download the image locally and try again.")
+                        self.parent.isPresented = false
+                    }
+                }
+                return
+            }
+            print("⚠️ .phAsset was nil")
+            
+            print("❌ All image sources failed. Available keys: \(info.keys.map { $0.rawValue }.joined(separator: ", "))")
+            parent.onError("Could not load selected image")
+            parent.isPresented = false
+        }
+        
+        private func handlePicked(image: UIImage) {
             // Validate image
             let validation = ArtworkValidator.validateImage(image)
             if let error = validation.error {
@@ -50,7 +99,6 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
                 parent.isPresented = false
                 return
             }
-            
             parent.onImageSelected(image)
             parent.isPresented = false
         }
