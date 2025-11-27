@@ -30,6 +30,12 @@
 "library.no.content" = "Sin contenido";
 "library.empty.folder.description" = "Esta carpeta está vacía";
 "library.no.content.description" = "Toca el botón + para importar archivos de audio o carpetas";
+"library.empty.folder.title" = "Carpeta vacía";
+"library.empty.folder.message" = "Esta carpeta está vacía";
+"library.no.audio.files.title" = "Sin archivos de audio";
+"library.empty.message" = "Tu biblioteca está vacía";
+"library.import.instructions" = "Toca el";
+"library.import.button.label" = "botón para añadir archivos de audio";
 "breadcrumb.back" = "Atrás";
 "breadcrumb.back.hint" = "Volver a la carpeta principal";
 

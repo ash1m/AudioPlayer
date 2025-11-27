@@ -48,14 +48,14 @@ struct SettingsView: View {
                 // Import Section
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(localizationManager.localizedString("settings.supported.formats"))
+                        Text(localizationManager.settingsSupportedFormats)
                             .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
                         
-                        Text(localizationManager.localizedString("settings.supported.formats.list"))
+                        Text(localizationManager.settingsSupportedFormatsList)
                             .font(FontManager.font(.regular, size: 12))
                             .foregroundColor(.secondary)
                         
-                        Text(localizationManager.localizedString("settings.import.description"))
+                        Text(localizationManager.settingsImportDescription)
                             .font(FontManager.font(.regular, size: 13))
                             .foregroundColor(.secondary)
                             .padding(.top, 4)

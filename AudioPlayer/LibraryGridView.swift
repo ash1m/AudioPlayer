@@ -470,19 +470,23 @@ struct LibraryGridView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
             
-            Text(folderNavigationManager.isInFolder ? "Empty Folder" : "No Audio Files")
+            Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderTitle : localizationManager.libraryNoAudioFilesTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
             
             VStack(spacing: 8) {
-                Text(folderNavigationManager.isInFolder ? "This folder is empty" : "Your library is empty")
+                Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderMessage : localizationManager.libraryEmptyMessage)
                     .foregroundColor(.secondary)
                 
-                Text("Tap the ")
-                    .foregroundColor(.secondary) +
-                Text(Image(systemName: "plus.circle"))
-                    .foregroundColor(.blue) +
-                Text(" button to add audio files or folders")
+                Text(localizationManager.libraryImportInstructions)
+                    .foregroundColor(.secondary)
+                + Text(" ")
+                    .foregroundColor(.secondary)
+                + Text("\(Image(systemName: "plus.circle"))")
+                    .foregroundColor(.white)
+                + Text(" ")
+                    .foregroundColor(.secondary)
+                + Text(localizationManager.libraryImportButtonLabel)
                     .foregroundColor(.secondary)
             }
             .font(.body)
@@ -865,3 +869,4 @@ struct ScrollOffsetKey: PreferenceKey {
     .environmentObject(AccessibilityManager())
     .environmentObject(LocalizationManager.shared)
 }
+

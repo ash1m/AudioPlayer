@@ -13,7 +13,12 @@ import Combine
 class LocalizationManager: ObservableObject {
     
     // MARK: - Current Language
-    @Published var currentLanguage: String = "en"
+    @Published var currentLanguage: String = "en" {
+        didSet {
+            // Force view refresh by sending objectWillChange notification
+            objectWillChange.send()
+        }
+    }
     
     // MARK: - Language Bundle
     private var languageBundle: Bundle?
@@ -92,6 +97,11 @@ class LocalizationManager: ObservableObject {
     var libraryUnknownTitle: String { localizedString("library.unknown.title") }
     var libraryUnknownArtist: String { localizedString("library.unknown.artist") }
     var libraryUnknownAlbum: String { localizedString("library.unknown.album") }
+    var libraryEmptyFolderTitle: String { localizedString("library.empty.folder.title") }
+    var libraryEmptyFolderMessage: String { localizedString("library.empty.folder.message") }
+    var libraryNoAudioFilesTitle: String { localizedString("library.no.audio.files.title") }
+    var libraryImportInstructions: String { localizedString("library.import.instructions") }
+    var libraryImportButtonLabel: String { localizedString("library.import.button.label") }
     
     // MARK: - Breadcrumb Navigation
     
@@ -155,6 +165,10 @@ class LocalizationManager: ObservableObject {
     var settingsAbout: String { localizedString("settings.about") }
     var settingsVersion: String { localizedString("settings.version") }
     var settingsBuild: String { localizedString("settings.build") }
+    var settingsLanguage: String { localizedString("settings.language") }
+    var settingsSupportedFormats: String { localizedString("settings.supported.formats") }
+    var settingsSupportedFormatsList: String { localizedString("settings.supported.formats.list") }
+    var settingsImportDescription: String { localizedString("settings.import.description") }
     
     // MARK: - Accessibility Settings
     
