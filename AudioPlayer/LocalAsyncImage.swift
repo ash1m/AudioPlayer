@@ -44,8 +44,11 @@ struct LocalAsyncImage<Content: View, Placeholder: View>: View {
         .onAppear {
             loadImage()
         }
-        .onChange(of: url) {
-            loadImage()
+        .onChange(of: url) { oldValue, newValue in
+            // Reload image whenever URL changes
+            if oldValue?.path != newValue?.path {
+                loadImage()
+            }
         }
     }
     
@@ -128,8 +131,11 @@ struct LocalAsyncImageWithPhase: View {
             .onAppear {
                 loadImage()
             }
-            .onChange(of: url) { 
-                loadImage()
+            .onChange(of: url) { oldValue, newValue in
+                // Reload image whenever URL changes, even if it's a different object with same path
+                if oldValue?.path != newValue?.path {
+                    loadImage()
+                }
             }
     }
     

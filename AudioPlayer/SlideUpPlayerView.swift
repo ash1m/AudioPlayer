@@ -290,6 +290,7 @@ struct SlideUpPlayerView: View {
                                     .scaleEffect(1.2))
                             }
                         }
+                        .id(audioPlayerService.currentAudioFile?.id) // Force reload when file changes
                     } else {
                         Image(systemName: "music.note")
                             .font(FontManager.font(.regular, size: 80))
