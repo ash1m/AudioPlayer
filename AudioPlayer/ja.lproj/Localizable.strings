@@ -34,8 +34,8 @@
 "library.empty.folder.message" = "このフォルダは空です";
 "library.no.audio.files.title" = "オーディオファイルがありません";
 "library.empty.message" = "ライブラリが空です";
-"library.import.instructions" = "";
-"library.import.button.label" = "ボタンをタップしてオーディオファイルを追加";
+"library.import.instructions" = "Tap ";
+"library.import.button.label" = "to add files";
 "breadcrumb.back" = "戻る";
 "breadcrumb.back.hint" = "親フォルダに戻る";
 

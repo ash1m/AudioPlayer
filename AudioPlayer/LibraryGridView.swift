@@ -466,9 +466,11 @@ struct LibraryGridView: View {
     
     private var emptyStateView: some View {
         VStack(spacing: 20) {
-            Image(systemName: folderNavigationManager.isInFolder ? "folder" : "music.note.list")
-                .font(.system(size: 60))
-                .foregroundColor(.gray)
+            Image("AppIconImage")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 150, height: 150)
+                .cornerRadius(13.5) // iOS app icon corner radius
             
             Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderTitle : localizationManager.libraryNoAudioFilesTitle)
                 .font(.title2)
@@ -478,7 +480,7 @@ struct LibraryGridView: View {
                 Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderMessage : localizationManager.libraryEmptyMessage)
                     .foregroundColor(.secondary)
                 
-                HStack(spacing: 4) {
+                HStack(alignment: .top, spacing: 4) {
                     Text(localizationManager.libraryImportInstructions)
                         .foregroundColor(.secondary)
                     Image(systemName: "plus.circle")
@@ -486,6 +488,7 @@ struct LibraryGridView: View {
                     Text(localizationManager.libraryImportButtonLabel)
                         .foregroundColor(.secondary)
                 }
+                
             }
             .font(.body)
             .multilineTextAlignment(.center)

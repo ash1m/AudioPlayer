@@ -34,8 +34,8 @@
 "library.empty.folder.message" = "Ce dossier est vide";
 "library.no.audio.files.title" = "Aucun fichier audio";
 "library.empty.message" = "Votre bibliothèque est vide";
-"library.import.instructions" = "Appuyez sur le";
-"library.import.button.label" = "bouton pour ajouter des fichiers audio";
+"library.import.instructions" = "Tap ";
+"library.import.button.label" = "to add files";
 "breadcrumb.back" = "Retour";
 "breadcrumb.back.hint" = "Revenir au dossier parent";
 

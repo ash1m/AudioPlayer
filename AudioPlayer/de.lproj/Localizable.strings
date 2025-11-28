@@ -34,8 +34,8 @@
 "library.empty.folder.message" = "Dieser Ordner ist leer";
 "library.no.audio.files.title" = "Keine Audiodateien";
 "library.empty.message" = "Ihre Mediathek ist leer";
-"library.import.instructions" = "Tippen Sie auf die";
-"library.import.button.label" = "Schaltfläche, um Audiodateien hinzuzufügen";
+"library.import.instructions" = "Tap ";
+"library.import.button.label" = "to add files";
 "breadcrumb.back" = "Zurück";
 "breadcrumb.back.hint" = "Zum Überordner zurückgehen";
 
