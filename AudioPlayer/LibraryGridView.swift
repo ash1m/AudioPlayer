@@ -592,8 +592,8 @@ struct LibraryGridView: View {
     }
     
     private func handleGroupedFileSelection(_ files: [AudioFile]) {
-        // Load and play all grouped files with continuous playback
-        audioPlayerService.playGroupedFiles(files, context: viewContext)
+        // Load and play all grouped files with continuous playback, resuming from last position
+        audioPlayerService.playGroupedFilesWithResume(files, context: viewContext)
         navigateToPlayer()
     }
     

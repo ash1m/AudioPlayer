@@ -882,13 +882,62 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         audioFile.currentPosition = currentTime
         
-        // Also save folder state if playing from a folder
+        // Save folder state if playing from a folder
         if isPlayingFromFolder, let folder = currentFolder {
             folder.savePlaybackState(position: currentTime)
             folder.lastPlayedAudioFile = audioFile
         }
         
+        // Save grouped file playback state
+        if isPlayingFromGroup {
+            saveGroupedFileState()
+        }
+        
         try? viewContext?.save()
+    }
+    
+    private func saveGroupedFileState() {
+        guard isPlayingFromGroup,
+              let audioFile = currentAudioFile else { return }
+        
+        // Create a key combining file IDs to uniquely identify this group
+        let fileIDs = groupedFilesQueue.compactMap { $0.id?.uuidString }.joined(separator: ",")
+        let groupKey = "GroupedFilesState_\(fileIDs)"
+        
+        var state: [String: Any] = [:]
+        state["currentFileID"] = audioFile.id?.uuidString
+        state["currentIndex"] = currentGroupedFileIndex
+        state["currentPosition"] = currentTime
+        state["timestamp"] = Date().timeIntervalSince1970
+        
+        UserDefaults.standard.set(state, forKey: groupKey)
+        print("💾 Saved grouped file state: \(groupKey) - File \(currentGroupedFileIndex + 1), Position: \(currentTime)")
+    }
+    
+    private func restoreGroupedFileState(_ files: [AudioFile]) -> (index: Int, position: Double)? {
+        guard !files.isEmpty else { return nil }
+        
+        // Create the same key used when saving
+        let fileIDs = files.compactMap { $0.id?.uuidString }.joined(separator: ",")
+        let groupKey = "GroupedFilesState_\(fileIDs)"
+        
+        guard let state = UserDefaults.standard.dictionary(forKey: groupKey) else {
+            return nil
+        }
+        
+        guard let currentIndex = state["currentIndex"] as? Int,
+              let currentPosition = state["currentPosition"] as? Double else {
+            return nil
+        }
+        
+        // Validate the index
+        guard currentIndex >= 0 && currentIndex < files.count else {
+            print("⚠️ Invalid grouped file index: \(currentIndex)")
+            return nil
+        }
+        
+        print("📁 Restored grouped file state: File \(currentIndex + 1), Position: \(currentPosition)")
+        return (index: currentIndex, position: currentPosition)
     }
     
     // MARK: - Playlist Playback Methods
@@ -1043,7 +1092,30 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Load and play the file at the specified index (don't clear group state)
         loadAudioFile(files[index], context: context, clearGroupState: false)
+        
+        // Seek to the saved position if it was set
+        let savedPosition = files[index].currentPosition
+        if savedPosition > 0 {
+            seek(to: savedPosition)
+            print("⏳ Seeking to saved position: \(savedPosition)")
+        }
+        
         play()
+    }
+    
+    func playGroupedFilesWithResume(_ files: [AudioFile], context: NSManagedObjectContext) {
+        guard !files.isEmpty else { return }
+        
+        // Try to restore previous state
+        if let (index, position) = restoreGroupedFileState(files) {
+            print("📁 Resuming grouped files from file \(index + 1) at position \(position)")
+            playGroupedFiles(files, startingAt: index, context: context)
+            // The position will be restored by the individual file's currentPosition in playGroupedFiles
+        } else {
+            // Start from the beginning
+            print("😀 Starting grouped files from beginning")
+            playGroupedFiles(files, startingAt: 0, context: context)
+        }
     }
     
     func playNextInGroup() -> Bool {
@@ -1051,6 +1123,9 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         let nextIndex = currentGroupedFileIndex + 1
         guard nextIndex < groupedFilesQueue.count else { return false }
+        
+        // Save current file's position before switching
+        saveCurrentPosition()
         
         currentGroupedFileIndex = nextIndex
         loadAudioFile(groupedFilesQueue[nextIndex], context: viewContext, clearGroupState: false)
@@ -1063,6 +1138,9 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         let previousIndex = currentGroupedFileIndex - 1
         guard previousIndex >= 0 else { return false }
+        
+        // Save current file's position before switching
+        saveCurrentPosition()
         
         currentGroupedFileIndex = previousIndex
         loadAudioFile(groupedFilesQueue[previousIndex], context: viewContext, clearGroupState: false)
