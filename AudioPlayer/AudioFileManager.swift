@@ -537,6 +537,11 @@ class AudioFileManager: ObservableObject {
             audioFile.playCount = 0
             audioFile.artworkPath = artworkPath
             
+            print("✅ AudioFile created:")
+            print("   Title: \(audioFile.title ?? "nil")")
+            print("   Artwork path: \(artworkPath ?? "nil")")
+            print("   Associated folder: \(folder?.name ?? "none")")
+            
             print("✅ Audio file imported: \(fileName)")
             print("   Stored filename (relative): \(uniqueFileName)")
             print("   Full path (for verification): \(localURL.path)")
@@ -670,35 +675,49 @@ class AudioFileManager: ObservableObject {
     }
     
     private func extractAndSaveArtwork(from url: URL, fileName: String, folderURL: URL? = nil) async -> String? {
+        print("🎨 [ARTWORK EXTRACT] Starting for file: \(fileName)")
         let asset = AVURLAsset(url: url)
         
         do {
             let metadata = try await asset.load(.metadata)
+            print("🎨 [ARTWORK EXTRACT] Found \(metadata.count) metadata items")
             
             // Look for artwork in metadata
             for item in metadata {
                 if let key = item.commonKey?.rawValue, key.contains("artwork") {
+                    print("🎨 [ARTWORK EXTRACT] Found artwork key in metadata")
                     if let artworkData = try await item.load(.dataValue) {
+                        print("🎨 [ARTWORK EXTRACT] Successfully extracted artwork data (\(artworkData.count) bytes)")
                         // Save artwork to disk
-                        return await saveArtworkToDisk(artworkData, fileName: fileName)
+                        let savedPath = await saveArtworkToDisk(artworkData, fileName: fileName)
+                        print("🎨 [ARTWORK EXTRACT] Saved embedded artwork to: \(savedPath ?? "failed")")
+                        return savedPath
                     }
                 }
             }
+            print("🎨 [ARTWORK EXTRACT] No embedded artwork found in metadata")
         } catch {
-            print("Could not extract metadata artwork: \(error)")
+            print("🎨 [ARTWORK EXTRACT] Error: \(error)")
         }
         
         // If no embedded artwork found, try to use folder artwork as fallback
         if let folderPath = folderURL {
+            print("🎨 [ARTWORK EXTRACT] Trying folder artwork in: \(folderPath.lastPathComponent)")
             if let folderArtworkURL = detectFolderArtwork(in: folderPath) {
                 do {
                     let artworkData = try Data(contentsOf: folderArtworkURL)
-                    print("📁 Using folder artwork as fallback")
-                    return await saveArtworkToDisk(artworkData, fileName: fileName)
+                    print("🎨 [ARTWORK EXTRACT] Using folder artwork: \(folderArtworkURL.lastPathComponent) (\(artworkData.count) bytes)")
+                    let savedPath = await saveArtworkToDisk(artworkData, fileName: fileName)
+                    print("🎨 [ARTWORK EXTRACT] Saved folder artwork to: \(savedPath ?? "failed")")
+                    return savedPath
                 } catch {
-                    print("⚠️ Could not read folder artwork: \(error)")
+                    print("🎨 [ARTWORK EXTRACT] Could not read folder artwork: \(error)")
                 }
+            } else {
+                print("🎨 [ARTWORK EXTRACT] No folder artwork file found")
             }
+        } else {
+            print("🎨 [ARTWORK EXTRACT] No folder URL provided for fallback")
         }
         
         return nil

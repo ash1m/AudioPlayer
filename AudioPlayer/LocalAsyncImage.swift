@@ -129,13 +129,19 @@ struct LocalAsyncImageWithPhase: View {
     var body: some View {
         content(currentPhase)
             .onAppear {
+                print("🎨 [LocalAsyncImageWithPhase] onAppear - URL: \(url?.lastPathComponent ?? "nil")")
+                // Always reset so a previous failure doesn't persist across different files
+                resetState()
                 loadImage()
             }
             .onChange(of: url) { oldValue, newValue in
-                // Reload image whenever URL changes, even if it's a different object with same path
-                if oldValue?.path != newValue?.path {
-                    loadImage()
-                }
+                // Reload image whenever URL changes. Always reset state even if the path is the same,
+                // because different files in a group may legitimately reuse the same artwork file.
+                print("🎨 [LocalAsyncImageWithPhase] onChange triggered")
+                print("   oldValue: \(oldValue?.lastPathComponent ?? "nil")")
+                print("   newValue: \(newValue?.lastPathComponent ?? "nil")")
+                resetState()
+                loadImage()
             }
     }
     
@@ -149,13 +155,21 @@ struct LocalAsyncImageWithPhase: View {
         }
     }
     
+    private func resetState() {
+        image = nil
+        error = nil
+        isLoading = false
+    }
+    
     private func loadImage() {
         guard let url = url else {
+            print("🎨 [LocalAsyncImageWithPhase] loadImage: URL is nil")
             error = LocalImageError.invalidURL
             isLoading = false
             return
         }
         
+        print("🎨 [LocalAsyncImageWithPhase] loadImage: Starting for \(url.lastPathComponent)")
         // Reset state
         image = nil
         error = nil

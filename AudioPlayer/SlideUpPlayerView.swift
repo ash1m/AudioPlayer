@@ -268,11 +268,20 @@ struct SlideUpPlayerView: View {
     
     
     private var artworkBackground: some View {
-        RoundedRectangle(cornerRadius: 0)
+        let artworkURL = audioPlayerService.currentAudioFile?.artworkURL
+        let fileTitle = audioPlayerService.currentAudioFile?.title ?? "Unknown"
+        
+        if artworkURL != nil {
+            print("🎨 [ExpandedPlayer] Artwork URL found for: \(fileTitle) - \(artworkURL?.path ?? "nil")")
+        } else {
+            print("🎨 [ExpandedPlayer] NO artwork URL for: \(fileTitle) - artworkPath: \(audioPlayerService.currentAudioFile?.artworkPath ?? "nil")")
+        }
+        
+        return RoundedRectangle(cornerRadius: 0)
             .fill(Color.gray.opacity(0.2))
             .overlay(
                 Group {
-                    if let artworkURL = audioPlayerService.currentAudioFile?.artworkURL {
+                    if let artworkURL = artworkURL {
                         LocalAsyncImageWithPhase(url: artworkURL) { phase in
                             switch phase {
                             case .success(let image):
