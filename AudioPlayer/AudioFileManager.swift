@@ -302,6 +302,22 @@ class AudioFileManager: ObservableObject {
                 if folderStructure[folderPath] == nil {
                     folderStructure[folderPath] = (folder: folder, files: [])
                 }
+                // Attempt to detect and save folder artwork if not already set
+                if folder.artworkPath == nil {
+                    Task {
+                        if let relativeArtworkPath = await detectAndSaveFolderArtwork(for: folder, folderURL: url) {
+                            await MainActor.run {
+                                folder.artworkPath = relativeArtworkPath
+                                do {
+                                    try context.save()
+                                    print("✅ Folder artwork saved for \(folder.name ?? "Folder")")
+                                } catch {
+                                    print("⚠️ Failed to save context after folder artwork: \(error)")
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
             let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
@@ -498,7 +514,9 @@ class AudioFileManager: ObservableObject {
         
         // Extract basic metadata and artwork
         let metadata = try await extractBasicMetadata(from: localURL)
-        let artworkPath = await extractAndSaveArtwork(from: localURL, fileName: baseName)
+        // Get the source folder URL for folder artwork detection
+        let sourceFolderURL = url.deletingLastPathComponent()
+        let artworkPath = await extractAndSaveArtwork(from: localURL, fileName: baseName, folderURL: sourceFolderURL)
         
         // Create the AudioFile entity
         await MainActor.run {
@@ -596,7 +614,62 @@ class AudioFileManager: ObservableObject {
         )
     }
     
-    private func extractAndSaveArtwork(from url: URL, fileName: String) async -> String? {
+    private func detectAndSaveFolderArtwork(for folder: Folder, folderURL: URL) async -> String? {
+        if let artworkURL = detectFolderArtwork(in: folderURL) {
+            do {
+                let artworkData = try Data(contentsOf: artworkURL)
+                let folderName = folder.name ?? "Folder"
+                let fileName = folderName.replacingOccurrences(of: "/", with: "_")
+                if let relativeArtworkPath = await saveArtworkToDisk(artworkData, fileName: fileName) {
+                    print("🎨 Saved folder artwork for: \(folderName)")
+                    return relativeArtworkPath
+                }
+            } catch {
+                print("⚠️ Could not read folder artwork: \(error)")
+            }
+        }
+        return nil
+    }
+    
+    private func detectFolderArtwork(in folderURL: URL) -> URL? {
+        // Start accessing security-scoped resource
+        let isAccessing = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        
+        // Common artwork filenames to search for (case-insensitive)
+        let commonArtworkNames = ["cover", "album", "folder", "artwork"]
+        let commonExtensions = ["jpg", "jpeg", "png"]
+        
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+            
+            // Search for matching artwork files
+            for item in contents {
+                let fileName = item.lastPathComponent.lowercased()
+                let pathExtension = item.pathExtension.lowercased()
+                
+                // Check if file is an image with common artwork name
+                if commonExtensions.contains(pathExtension) {
+                    for artworkName in commonArtworkNames {
+                        if fileName.hasPrefix(artworkName) {
+                            print("🎨 Found folder artwork: \(item.lastPathComponent)")
+                            return item
+                        }
+                    }
+                }
+            }
+        } catch {
+            print("⚠️ Error searching for folder artwork: \(error)")
+        }
+        
+        return nil
+    }
+    
+    private func extractAndSaveArtwork(from url: URL, fileName: String, folderURL: URL? = nil) async -> String? {
         let asset = AVURLAsset(url: url)
         
         do {
@@ -612,7 +685,20 @@ class AudioFileManager: ObservableObject {
                 }
             }
         } catch {
-            print("Could not extract artwork: \(error)")
+            print("Could not extract metadata artwork: \(error)")
+        }
+        
+        // If no embedded artwork found, try to use folder artwork as fallback
+        if let folderPath = folderURL {
+            if let folderArtworkURL = detectFolderArtwork(in: folderPath) {
+                do {
+                    let artworkData = try Data(contentsOf: folderArtworkURL)
+                    print("📁 Using folder artwork as fallback")
+                    return await saveArtworkToDisk(artworkData, fileName: fileName)
+                } catch {
+                    print("⚠️ Could not read folder artwork: \(error)")
+                }
+            }
         }
         
         return nil
