@@ -53,7 +53,7 @@ class AudioFileManager: ObservableObject {
     func importAudioFiles(urls: [URL], context: NSManagedObjectContext) async -> [ImportResult] {
         var results: [ImportResult] = []
         var individualFiles: [URL] = []
-        var folderStructure: [String: (folder: Folder, files: [URL])] = [:]
+        var folderStructure: [String: (folder: Folder, folderURL: URL, files: [URL])] = [:]
         
         // Get existing file names for duplicate detection
         let existingFileNames = await getExistingFileNames(context: context)
@@ -113,6 +113,14 @@ class AudioFileManager: ObservableObject {
         
         // Import files grouped by folder
         for (_, folderData) in folderStructure {
+            // Start accessing security-scoped resource for the folder (fresh scope for import phase)
+            let folderIsAccessing = folderData.folderURL.startAccessingSecurityScopedResource()
+            defer {
+                if folderIsAccessing {
+                    folderData.folderURL.stopAccessingSecurityScopedResource()
+                }
+            }
+            
             for fileURL in folderData.files {
                 // Start accessing security-scoped resource for folder files
                 let isAccessing = fileURL.startAccessingSecurityScopedResource()
@@ -129,8 +137,8 @@ class AudioFileManager: ObservableObject {
                     // Check for duplicates
                     try validateNoDuplicate(url: fileURL, existingNames: existingFileNames)
                     
-                    // Import the file and associate with folder
-                    try await importSingleAudioFile(url: fileURL, folder: folderData.folder, context: context)
+                    // Import the file and associate with folder, passing the folder URL for artwork detection
+                    try await importSingleAudioFile(url: fileURL, folder: folderData.folder, folderURL: folderData.folderURL, context: context)
                     results.append(ImportResult(url: fileURL, success: true))
                     
                 } catch {
@@ -283,7 +291,7 @@ class AudioFileManager: ObservableObject {
     
     // MARK: - Folder Processing Methods
     
-    private func processDirectory(_ url: URL, folderStructure: inout [String: (folder: Folder, files: [URL])], context: NSManagedObjectContext, parentFolder: Folder? = nil) async {
+    private func processDirectory(_ url: URL, folderStructure: inout [String: (folder: Folder, folderURL: URL, files: [URL])], context: NSManagedObjectContext, parentFolder: Folder? = nil) async {
         // Start accessing security-scoped resource for this directory
         let isAccessing = url.startAccessingSecurityScopedResource()
         defer {
@@ -300,7 +308,8 @@ class AudioFileManager: ObservableObject {
                 // Get or create folder entity
                 let folder = getOrCreateFolder(name: folderName, path: folderPath, parentFolder: parentFolder, context: context)
                 if folderStructure[folderPath] == nil {
-                    folderStructure[folderPath] = (folder: folder, files: [])
+                    // Store the folder URL along with the folder entity for later use during import
+                    folderStructure[folderPath] = (folder: folder, folderURL: url, files: [])
                 }
                 // Attempt to detect and save folder artwork if not already set
                 if folder.artworkPath == nil {
@@ -461,7 +470,7 @@ class AudioFileManager: ObservableObject {
         }
     }
     
-    private func importSingleAudioFile(url: URL, folder: Folder? = nil, context: NSManagedObjectContext) async throws {
+    private func importSingleAudioFile(url: URL, folder: Folder? = nil, folderURL: URL? = nil, context: NSManagedObjectContext) async throws {
         // Start accessing the security-scoped resource
         let isAccessing = url.startAccessingSecurityScopedResource()
         defer {
@@ -514,8 +523,8 @@ class AudioFileManager: ObservableObject {
         
         // Extract basic metadata and artwork
         let metadata = try await extractBasicMetadata(from: localURL)
-        // Get the source folder URL for folder artwork detection
-        let sourceFolderURL = url.deletingLastPathComponent()
+        // Use provided folder URL if available (for properly-scoped access), otherwise derive from file URL
+        let sourceFolderURL = folderURL ?? url.deletingLastPathComponent()
         let artworkPath = await extractAndSaveArtwork(from: localURL, fileName: baseName, folderURL: sourceFolderURL)
         
         // Create the AudioFile entity
