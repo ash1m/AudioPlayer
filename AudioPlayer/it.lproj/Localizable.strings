@@ -34,8 +34,8 @@
 "library.empty.folder.message" = "Questa cartella è vuota";
 "library.no.audio.files.title" = "Nessun file audio";
 "library.empty.message" = "La tua biblioteca è vuota";
-"library.import.instructions" = "Tap ";
-"library.import.button.label" = "to add files";
+"library.import.instructions" = "Tocca ";
+"library.import.button.label" = "per aggiungere file";
 "breadcrumb.back" = "Indietro";
 "breadcrumb.back.hint" = "Torna alla cartella principale";
 

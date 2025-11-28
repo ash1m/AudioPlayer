@@ -34,8 +34,8 @@
 "library.empty.folder.message" = "Esta pasta está vazia";
 "library.no.audio.files.title" = "Nenhum arquivo de áudio";
 "library.empty.message" = "Sua biblioteca está vazia";
-"library.import.instructions" = "Tap ";
-"library.import.button.label" = "to add files";
+"library.import.instructions" = "Toque em ";
+"library.import.button.label" = "para adicionar arquivos";
 "breadcrumb.back" = "Voltar";
 "breadcrumb.back.hint" = "Voltar para a pasta principal";
 
