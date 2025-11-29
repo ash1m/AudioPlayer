@@ -30,17 +30,16 @@ struct AudiobookListCard: View {
     @State private var screenWidth: CGFloat = 390
     @State private var initialRotation: Double = 0
     @State private var showContextMenu: Bool = false
+    @State private var currentRotation: Double = 0
     
-    private let maxRotation: CGFloat = 4.0
+    private let maxRotation: CGFloat = 40.0
     
     private var isImageLeft: Bool {
         rowIndex % 2 == 0
     }
     
     private var rotation: Double {
-        let rotationPercentage = (scrollOffset / 250)
-        let scrollRotation = maxRotation * sin(rotationPercentage * .pi)
-        return initialRotation + scrollRotation
+        currentRotation
     }
     
     // Get screen width - 50% of device width
@@ -174,9 +173,13 @@ struct AudiobookListCard: View {
             
             // Set random initial rotation between -4 and +4 degrees
             initialRotation = Double.random(in: -maxRotation...maxRotation)
+            updateRotation()
         }
         .onDisappear {
             // no-op
+        }
+        .onChange(of: scrollOffset) { _, _ in
+            updateRotation()
         }
         .task {
             if let artworkURL = audioFile.artworkURL {
@@ -187,6 +190,16 @@ struct AudiobookListCard: View {
             }
         }
     }
+    
+    // MARK: - Rotation Update Method
+    
+    private func updateRotation() {
+        let rotationPercentage = min(scrollOffset / 50, 1.0) // Cap at 1.0
+        let scrollRotation = maxRotation * rotationPercentage
+        currentRotation = initialRotation + scrollRotation
+    }
+    
+    // MARK: - UI Components
     
     private var coverImageSection: some View {
         let bleedAmount = coverSize * 0.2
