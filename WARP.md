@@ -502,3 +502,17 @@ Test the app with:
   - **Format Flexibility**: Accepts embedded artwork in any format (PNG, GIF, etc.)
   - **Fallback**: Displays music note icon if no artwork available
   - **Optimization**: Artwork saves to dedicated Documents/Artwork directory
+
+### Custom Artwork Picker Enhancement (November 2025)
+- **Fixed Blank Screen Issue**: Resolved race condition in artwork picker presentation
+  - **Separate Sheet Bindings**: Split single conditional sheet into two independent sheets (file and folder)
+  - **State Synchronization**: Each sheet binding corresponds to its specific content, eliminating timing issues
+  - **Reliable Presentation**: Sheet only appears when its target state is properly initialized
+- **Legacy iCloud Photo Support**: Added comprehensive handling for older image sources
+  - **Reference URL Fallback**: Handles `UIImagePickerControllerReferenceURL` for certain iCloud photos
+  - **PHAsset Conversion**: Converts legacy Assets Library URLs to modern PHAsset objects
+  - **Network Access**: Enabled async image loading with network support for iCloud-synced photos
+  - **Error Handling**: Graceful fallback when iCloud assets are unavailable
+  - **Improved Logging**: Enhanced debug logging for troubleshooting image picker issues
+- **Image Validation**: Maintained validation for square aspect ratio, file size (1MB max), and minimum dimensions (200x200px)
+- **Async Image Processing**: Uses async operations to load images without blocking UI during iCloud asset retrieval
