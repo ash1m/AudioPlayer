@@ -31,7 +31,7 @@ struct AudiobookListCard: View {
     @State private var showContextMenu: Bool = false
 
     
-    private let maxRotation: CGFloat = 40.0
+    private let maxRotation: CGFloat = 4.0
     
     private var isImageLeft: Bool {
         rowIndex % 2 == 0
@@ -97,6 +97,7 @@ struct AudiobookListCard: View {
                 .padding()
             }
         }
+    .frame(height: coverSize + 32)  // coverSize + padding (16 top + 16 bottom)
     .onTapGesture(perform: onTap)
     .contextMenu {
         // Playback actions

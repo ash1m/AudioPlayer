@@ -663,23 +663,26 @@ class AudioFileManager: ObservableObject {
             if let matchingFileName = matchingFileName {
                 // Extract the common prefix before any chapter/part indicators
                 let commonPrefix = extractCommonFilePrefix(matchingFileName)
+                print("🎨 [DETECT FOLDER] Looking for artwork matching prefix: '\(commonPrefix)'")
                 
                 for item in contents {
-                    let fileName = item.lastPathComponent.lowercased()
                     let fileNameWithoutExt = (item.lastPathComponent as NSString).deletingPathExtension.lowercased()
                     let pathExtension = item.pathExtension.lowercased()
                     
                     // Check if file is an image with matching name (exact or common prefix)
                     if imageExtensions.contains(pathExtension) {
-                        if fileNameWithoutExt == commonPrefix.lowercased() || fileNameWithoutExt == matchingFileName.lowercased() {
-                            print("🎨 Found matching artwork: \(item.lastPathComponent) for \(matchingFileName)")
+                        print("🎨 [DETECT FOLDER] Found image: \(item.lastPathComponent) (name without ext: '\(fileNameWithoutExt)')")
+                        if fileNameWithoutExt == commonPrefix.lowercased() {
+                            print("🎨 Found matching artwork: \(item.lastPathComponent) for prefix '\(commonPrefix)'")
                             return item
                         }
                     }
                 }
+                print("🎨 [DETECT FOLDER] No matching artwork found for prefix '\(commonPrefix)'")
             }
             
             // Fallback: search for common artwork filenames
+            print("🎨 [DETECT FOLDER] Searching for common artwork names...")
             let commonArtworkNames = ["cover", "album", "folder", "artwork"]
             for item in contents {
                 let fileName = item.lastPathComponent.lowercased()
@@ -689,12 +692,13 @@ class AudioFileManager: ObservableObject {
                 if imageExtensions.contains(pathExtension) {
                     for artworkName in commonArtworkNames {
                         if fileName.hasPrefix(artworkName) {
-                            print("🎨 Found folder artwork: \(item.lastPathComponent)")
+                            print("🎨 Found common artwork: \(item.lastPathComponent)")
                             return item
                         }
                     }
                 }
             }
+            print("🎨 [DETECT FOLDER] No common artwork found")
         } catch {
             print("⚠️ Error searching for folder artwork: \(error)")
         }
