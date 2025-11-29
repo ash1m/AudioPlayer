@@ -16,7 +16,7 @@ struct AudiobookListCard: View {
     
     let audioFile: AudioFile
     let rowIndex: Int
-    let scrollOffset: CGFloat
+    var scrollOffset: CGFloat
     let onDelete: (AudioFile) -> Void
     let onTap: () -> Void
     let onMarkAsPlayed: ((AudioFile) -> Void)?
@@ -30,16 +30,12 @@ struct AudiobookListCard: View {
     @State private var screenWidth: CGFloat = 390
     @State private var initialRotation: Double = 0
     @State private var showContextMenu: Bool = false
-    @State private var currentRotation: Double = 0
+
     
     private let maxRotation: CGFloat = 40.0
     
     private var isImageLeft: Bool {
         rowIndex % 2 == 0
-    }
-    
-    private var rotation: Double {
-        currentRotation
     }
     
     // Get screen width - 50% of device width
@@ -62,45 +58,45 @@ struct AudiobookListCard: View {
     
 
     var body: some View {
-        ZStack() {
-            HStack(spacing: 0) {
-                
-                if isImageLeft {
+            ZStack() {
+                HStack(spacing: 0) {
                     
-                    // Image (50%)
-                    coverImageSection
-                        .frame(width: coverSize)
-                    
-                    // InfoText (50%)
-                    textSection
-                        .frame(width: infoTextWidth)
-                    
-                    // Right margin (bleeds off-screen)
-                    //Color.clear
-                      //  .frame(width: marginWidth)
+                    if isImageLeft {
                         
-    
+                        // Image (50%)
+                        coverImageSection
+                            .frame(width: coverSize)
+                        
+                        // InfoText (50%)
+                        textSection
+                            .frame(width: infoTextWidth)
+                        
+                        // Right margin (bleeds off-screen)
+                        //Color.clear
+                        //  .frame(width: marginWidth)
+                        
+                        
+                    }
+                    else {
+                        // Left margin (bleeds off-screen)
+                        //Color.clear
+                        //   .frame(width: marginWidth)
+                        
+                        // InfoText (50%)
+                        textSection
+                            .frame(width: infoTextWidth)
+                        
+                        // Image (50%)
+                        coverImageSection
+                            .frame(width: coverSize)
+                        
+                        
+                    }
                 }
-                else {
-                    // Left margin (bleeds off-screen)
-                    //Color.clear
-                     //   .frame(width: marginWidth)
-                    
-                    // InfoText (50%)
-                    textSection
-                        .frame(width: infoTextWidth)
-                    
-                    // Image (50%)
-                    coverImageSection
-                        .frame(width: coverSize)
-                
-    
-                }
+                //.frame(maxWidth: .infinity, alignment: .center)
+                .padding()
+        
         }
-        //.frame(maxWidth: .infinity, alignment: .center)
-            .padding()
-            
-    }
     .onTapGesture(perform: onTap)
     .contextMenu {
         // Playback actions
@@ -173,13 +169,13 @@ struct AudiobookListCard: View {
             
             // Set random initial rotation between -4 and +4 degrees
             initialRotation = Double.random(in: -maxRotation...maxRotation)
-            updateRotation()
+            //updateRotation()
         }
         .onDisappear {
             // no-op
         }
         .onChange(of: scrollOffset) { _, _ in
-            updateRotation()
+            //updateRotation()
         }
         .task {
             if let artworkURL = audioFile.artworkURL {
@@ -193,10 +189,10 @@ struct AudiobookListCard: View {
     
     // MARK: - Rotation Update Method
     
-    private func updateRotation() {
-        let rotationPercentage = min(scrollOffset / 50, 1.0) // Cap at 1.0
-        let scrollRotation = maxRotation * rotationPercentage
-        currentRotation = initialRotation + scrollRotation
+    private var rotation: Double {
+        let rotationPercentage = abs(scrollOffset) / 250 // Use abs() to handle negative values
+        let scrollRotation = maxRotation * min(rotationPercentage, 1.0)
+        return initialRotation + scrollRotation
     }
     
     // MARK: - UI Components
