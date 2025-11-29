@@ -16,7 +16,7 @@ struct AudiobookListCard: View {
     
     let audioFile: AudioFile
     let rowIndex: Int
-    var scrollOffset: CGFloat
+    @Binding var scrollOffset: CGFloat
     let onDelete: (AudioFile) -> Void
     let onTap: () -> Void
     let onMarkAsPlayed: ((AudioFile) -> Void)?

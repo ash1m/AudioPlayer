@@ -534,7 +534,7 @@ struct LibraryGridView: View {
                     AudiobookListCard(
                         audioFile: audioFile,
                         rowIndex: index,
-                        scrollOffset: scrollOffset,
+                        scrollOffset: $scrollOffset,
                         onDelete: { file in
                             // Handle delete for group or single file
                             if let groupedFiles = displayItem.groupedFiles {
