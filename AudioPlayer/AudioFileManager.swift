@@ -531,7 +531,8 @@ class AudioFileManager: ObservableObject {
         await MainActor.run {
             let audioFile = NSEntityDescription.insertNewObject(forEntityName: "AudioFile", into: context) as! AudioFile
             audioFile.id = UUID()
-            audioFile.title = metadata.title ?? baseName
+            // Use filename (without extension) as title, ignore metadata title
+            audioFile.title = baseName
             audioFile.artist = metadata.artist
             audioFile.album = metadata.album
             audioFile.genre = metadata.genre
@@ -590,7 +591,8 @@ class AudioFileManager: ObservableObject {
         }
         
         // Basic metadata extraction
-        var title: String?
+        // Note: Ignoring title from metadata - using filename instead
+        var title: String? = nil
         var artist: String?
         var album: String?
         var genre: String?
@@ -601,8 +603,6 @@ class AudioFileManager: ObservableObject {
                 if let key = item.commonKey?.rawValue {
                     let value = try? await item.load(.value)
                     switch key {
-                    case "title":
-                        title = value as? String
                     case "artist":
                         artist = value as? String
                     case "albumName":
@@ -645,7 +645,7 @@ class AudioFileManager: ObservableObject {
         return nil
     }
     
-    private func detectFolderArtwork(in folderURL: URL) -> URL? {
+    private func detectFolderArtwork(in folderURL: URL, matchingFileName: String? = nil) -> URL? {
         // Start accessing security-scoped resource
         let isAccessing = folderURL.startAccessingSecurityScopedResource()
         defer {
@@ -654,20 +654,39 @@ class AudioFileManager: ObservableObject {
             }
         }
         
-        // Common artwork filenames to search for (case-insensitive)
-        let commonArtworkNames = ["cover", "album", "folder", "artwork"]
-        let commonExtensions = ["jpg", "jpeg", "png"]
+        let imageExtensions = ["jpg", "jpeg", "png"]
         
         do {
             let contents = try FileManager.default.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
             
-            // Search for matching artwork files
+            // If matchingFileName provided, search for matching artwork (audiobook_chapter1 -> audiobook.*)
+            if let matchingFileName = matchingFileName {
+                // Extract the common prefix before any chapter/part indicators
+                let commonPrefix = extractCommonFilePrefix(matchingFileName)
+                
+                for item in contents {
+                    let fileName = item.lastPathComponent.lowercased()
+                    let fileNameWithoutExt = (item.lastPathComponent as NSString).deletingPathExtension.lowercased()
+                    let pathExtension = item.pathExtension.lowercased()
+                    
+                    // Check if file is an image with matching name (exact or common prefix)
+                    if imageExtensions.contains(pathExtension) {
+                        if fileNameWithoutExt == commonPrefix.lowercased() || fileNameWithoutExt == matchingFileName.lowercased() {
+                            print("🎨 Found matching artwork: \(item.lastPathComponent) for \(matchingFileName)")
+                            return item
+                        }
+                    }
+                }
+            }
+            
+            // Fallback: search for common artwork filenames
+            let commonArtworkNames = ["cover", "album", "folder", "artwork"]
             for item in contents {
                 let fileName = item.lastPathComponent.lowercased()
                 let pathExtension = item.pathExtension.lowercased()
                 
                 // Check if file is an image with common artwork name
-                if commonExtensions.contains(pathExtension) {
+                if imageExtensions.contains(pathExtension) {
                     for artworkName in commonArtworkNames {
                         if fileName.hasPrefix(artworkName) {
                             print("🎨 Found folder artwork: \(item.lastPathComponent)")
@@ -681,6 +700,25 @@ class AudioFileManager: ObservableObject {
         }
         
         return nil
+    }
+    
+    private func extractCommonFilePrefix(_ fileName: String) -> String {
+        // Extract base name without extension
+        let fileNameWithoutExt = (fileName as NSString).deletingPathExtension
+        
+        // Common patterns: "title - chapter", "title_chapter", "title chapter"
+        // Extract the part before chapter indicators
+        let patterns = [" - ", " chapter", "_chapter", " ch", "_ch", " - part", "_part"]
+        var basePrefix = fileNameWithoutExt
+        
+        for pattern in patterns {
+            if let range = fileNameWithoutExt.range(of: pattern, options: .caseInsensitive) {
+                basePrefix = String(fileNameWithoutExt[..<range.lowerBound])
+                break
+            }
+        }
+        
+        return basePrefix.trimmingCharacters(in: .whitespaces)
     }
     
     private func extractAndSaveArtwork(from url: URL, fileName: String, folderURL: URL? = nil) async -> String? {
@@ -697,7 +735,7 @@ class AudioFileManager: ObservableObject {
                     print("🎨 [ARTWORK EXTRACT] Found artwork key in metadata")
                     if let artworkData = try await item.load(.dataValue) {
                         print("🎨 [ARTWORK EXTRACT] Successfully extracted artwork data (\(artworkData.count) bytes)")
-                        // Save artwork to disk
+                        // Save artwork to disk - use fileName for consistency
                         let savedPath = await saveArtworkToDisk(artworkData, fileName: fileName)
                         print("🎨 [ARTWORK EXTRACT] Saved embedded artwork to: \(savedPath ?? "failed")")
                         return savedPath
@@ -709,10 +747,11 @@ class AudioFileManager: ObservableObject {
             print("🎨 [ARTWORK EXTRACT] Error: \(error)")
         }
         
-        // If no embedded artwork found, try to use folder artwork as fallback
+        // If no embedded artwork found, try to use folder artwork matching the filename
         if let folderPath = folderURL {
             print("🎨 [ARTWORK EXTRACT] Trying folder artwork in: \(folderPath.lastPathComponent)")
-            if let folderArtworkURL = detectFolderArtwork(in: folderPath) {
+            // Pass fileName for matching (will extract common prefix for grouped files)
+            if let folderArtworkURL = detectFolderArtwork(in: folderPath, matchingFileName: fileName) {
                 do {
                     let artworkData = try Data(contentsOf: folderArtworkURL)
                     print("🎨 [ARTWORK EXTRACT] Using folder artwork: \(folderArtworkURL.lastPathComponent) (\(artworkData.count) bytes)")

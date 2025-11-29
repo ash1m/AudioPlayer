@@ -38,7 +38,7 @@ struct AudiobookListCard: View {
     }
     
     private var rotation: Double {
-        let rotationPercentage = (scrollOffset / 500)
+        let rotationPercentage = (scrollOffset / 250)
         let scrollRotation = maxRotation * sin(rotationPercentage * .pi)
         return initialRotation + scrollRotation
     }
