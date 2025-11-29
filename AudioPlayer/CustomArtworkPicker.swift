@@ -86,6 +86,50 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
             }
             print("⚠️ .phAsset was nil")
             
+            // Handle legacy reference URL (for certain iCloud photos)
+            if let referenceURL = info[.referenceURL] as? URL {
+                print("📎 Found .referenceURL: \(referenceURL)")
+                
+                // Fetch the PHAsset from the reference URL
+                let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [referenceURL], options: nil)
+                
+                if let asset = fetchResult.firstObject {
+                    print("📷 Got PHAsset from referenceURL")
+                    parent.isPresented = false  // Dismiss picker immediately
+                    
+                    let opts = PHImageRequestOptions()
+                    opts.isNetworkAccessAllowed = true
+                    opts.deliveryMode = .highQualityFormat
+                    opts.isSynchronous = false
+                    
+                    PHImageManager.default().requestImage(
+                        for: asset,
+                        targetSize: PHImageManagerMaximumSize,
+                        contentMode: .aspectFit,
+                        options: opts
+                    ) { image, info in
+                        DispatchQueue.main.async {
+                            if let image = image {
+                                print("✅ Got image from referenceURL PHAsset")
+                                let validation = ArtworkValidator.validateImage(image)
+                                if let error = validation.error {
+                                    self.parent.onError(error)
+                                    return
+                                }
+                                self.parent.onImageSelected(image)
+                            } else {
+                                print("❌ Failed to load image from referenceURL")
+                                self.parent.onError("Could not load selected image. Please try a different photo.")
+                            }
+                        }
+                    }
+                    return
+                } else {
+                    print("❌ Could not fetch PHAsset from referenceURL")
+                }
+            }
+            print("⚠️ .referenceURL was nil or could not be fetched")
+            
             print("❌ All image sources failed. Available keys: \(info.keys.map { $0.rawValue }.joined(separator: ", "))")
             parent.onError("Could not load selected image")
             parent.isPresented = false

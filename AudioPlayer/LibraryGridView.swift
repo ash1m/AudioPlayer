@@ -39,7 +39,6 @@ struct LibraryGridView: View {
     @State private var alertMessage = ""
     @State private var showingImportResults = false
     @State private var importResults: [AudioFileManager.ImportResult] = []
-    @State private var showingArtworkPicker = false
     @State private var selectedAudioFileForArtwork: AudioFile?
     @State private var selectedFolderForArtwork: Folder?
     @State private var artworkErrorMessage = ""
@@ -47,6 +46,9 @@ struct LibraryGridView: View {
     @State private var isImporting = false
     @State private var sortOption: SortOption = .fileName
     @State private var displayItems: [DisplayItem] = []
+    
+    @State private var showingFileArtworkPicker = false
+    @State private var showingFolderArtworkPicker = false
     
     // Performance optimization - reduce view rebuilds
     @State private var lastContentRefresh: CFTimeInterval = 0
@@ -147,10 +149,10 @@ struct LibraryGridView: View {
                 onDocumentsSelected: importAudioFiles
             )
         }
-        .sheet(isPresented: $showingArtworkPicker) {
+        .sheet(isPresented: $showingFileArtworkPicker) {
             if let selectedAudioFile = selectedAudioFileForArtwork {
                 CustomArtworkPicker(
-                    isPresented: $showingArtworkPicker,
+                    isPresented: $showingFileArtworkPicker,
                     onImageSelected: { image in
                         handleCustomArtwork(for: selectedAudioFile, image: image)
                     },
@@ -160,9 +162,12 @@ struct LibraryGridView: View {
                         alertMessage = artworkErrorMessage
                     }
                 )
-            } else if let selectedFolder = selectedFolderForArtwork {
+            }
+        }
+        .sheet(isPresented: $showingFolderArtworkPicker) {
+            if let selectedFolder = selectedFolderForArtwork {
                 CustomArtworkPicker(
-                    isPresented: $showingArtworkPicker,
+                    isPresented: $showingFolderArtworkPicker,
                     onImageSelected: { image in
                         handleCustomArtwork(for: selectedFolder, image: image)
                     },
@@ -299,7 +304,7 @@ struct LibraryGridView: View {
     private func setCustomArtwork(_ audioFile: AudioFile) {
         selectedAudioFileForArtwork = audioFile
         selectedFolderForArtwork = nil // Clear folder selection
-        showingArtworkPicker = true
+        showingFileArtworkPicker = true
     }
     
     private func handleCustomArtwork(for audioFile: AudioFile, image: UIImage) {
@@ -351,7 +356,7 @@ struct LibraryGridView: View {
     private func setCustomArtwork(_ folder: Folder) {
         selectedFolderForArtwork = folder
         selectedAudioFileForArtwork = nil // Clear audio file selection
-        showingArtworkPicker = true
+        showingFolderArtworkPicker = true
     }
     
     private func handleCustomArtwork(for folder: Folder, image: UIImage) {

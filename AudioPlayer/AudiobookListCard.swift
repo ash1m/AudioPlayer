@@ -31,7 +31,7 @@ struct AudiobookListCard: View {
     @State private var showContextMenu: Bool = false
 
     
-    private let maxRotation: CGFloat = 4.0
+    private let maxRotation: CGFloat = 3.0
     
     private var isImageLeft: Bool {
         rowIndex % 2 == 0
@@ -46,15 +46,15 @@ struct AudiobookListCard: View {
         return screenWidth * 0.6
     }
 
-    //private var marginWidth: CGFloat {
-     //   return screenWidth * 0.1
-    //}
+    private var marginWidth: CGFloat {
+        return screenWidth * 0.1
+    }
 
     private var totalRowWidth: CGFloat {
         // 40% image + 60% infotext + 10% margin (on one side for bleed)
-        return coverSize + infoTextWidth
+        return coverSize + infoTextWidth + marginWidth
     }
-    
+ 
 
     var body: some View {
         GeometryReader { geometry in
@@ -63,38 +63,44 @@ struct AudiobookListCard: View {
                     
                     if isImageLeft {
                         
-                        // Image (50%)
+                        // Image
                         coverImageSection(geometry: geometry)
+                            .padding(.trailing, marginWidth)
                             .frame(width: coverSize)
+                            //.background(Color.blue)
                         
-                        // InfoText (50%)
+                        // InfoText
                         textSection
                             .frame(width: infoTextWidth)
-                        
-                        // Right margin (bleeds off-screen)
-                        //Color.clear
-                        //  .frame(width: marginWidth)
-                        
+                            //.background(Color.yellow)
+
+                        // Margin (bleeds off-screen)
+                        Color.clear
+                            .frame(width: marginWidth)
+                            //.background(Color.red)
                         
                     }
                     else {
-                        // Left margin (bleeds off-screen)
-                        //Color.clear
-                        //   .frame(width: marginWidth)
                         
-                        // InfoText (50%)
+                        // InfoText
                         textSection
+                            .padding(.leading, marginWidth*0.25)
                             .frame(width: infoTextWidth)
+                            //.background(Color.yellow)
                         
-                        // Image (50%)
+                        // Image
                         coverImageSection(geometry: geometry)
                             .frame(width: coverSize)
-                        
-                        
+                            //.background(Color.blue)
+
+                        // Margin (bleeds off-screen)
+                        //Color.clear
+                        //    .frame(width: marginWidth)
+                        //    .background(Color.red)
                     }
                 }
-                //.frame(maxWidth: .infinity, alignment: .center)
-                .padding()
+                .frame(maxWidth: totalRowWidth, alignment: .center)
+                //.padding()
             }
         }
     .frame(height: coverSize + 32)  // coverSize + padding (16 top + 16 bottom)
@@ -188,8 +194,11 @@ struct AudiobookListCard: View {
     // MARK: - Rotation Calculation
     
     private func rotation(for geometry: GeometryProxy) -> Double {
-        let yPosition = geometry.frame(in: .global).minY
-        let scrollProgress = abs(yPosition) / 250
+        // Get the card's current Y position relative to its container
+        let currentY = geometry.frame(in: .named("scroll")).minY
+        
+        // Calculate how far it's scrolled (negative = scrolled up)
+        let scrollProgress = abs(currentY) / 250
         let scrollRotation = maxRotation * min(scrollProgress, 1.0)
         return initialRotation + scrollRotation
     }
@@ -197,7 +206,7 @@ struct AudiobookListCard: View {
     // MARK: - UI Components
     
     private func coverImageSection(geometry: GeometryProxy) -> some View {
-        let bleedAmount = coverSize * 0.2
+        //let bleedAmount = coverSize * 0.2
         let rotation = rotation(for: geometry)
         
         return ZStack(alignment: .center) {
@@ -241,7 +250,7 @@ struct AudiobookListCard: View {
             }
         }
         .frame(width: coverSize, height: coverSize)
-        .offset(x: isImageLeft ? -bleedAmount : bleedAmount)
+        //.offset(x: isImageLeft ? bleedAmount : -bleedAmount)
     }
     
     private var textSection: some View {
@@ -253,6 +262,8 @@ struct AudiobookListCard: View {
                         .foregroundColor(.white)
                         .lineLimit(2)
                         .truncationMode(.tail)
+                        .multilineTextAlignment(.leading)  // ADD THIS
+                            .fixedSize(horizontal: false, vertical: true)  // ADD THIS
                     
                     Text(audioFile.artist ?? "Unknown Author")
                         .font(FontManager.fontWithSystemFallback(weight: .regular, size: 16))
@@ -336,7 +347,7 @@ struct AudiobookListCard: View {
             
 
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding()
     }
 }

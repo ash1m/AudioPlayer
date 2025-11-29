@@ -17,7 +17,7 @@
 "settings.supported.formats.list" = "MP3, M4A/AAC, WAV, AIFF, FLAC（対応している場合）";
 "settings.import.description" = "ファイルアプリ、iCloud Drive、またはその他のソースからオーディオファイルをインポートします。";
 "settings.version" = "バージョン";
-"settings.build" = "ビルド";
+"settings.build" = "バグ/フィードバック";
 
 // Library view
 "library.title" = "ライブラリ";

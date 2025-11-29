@@ -75,7 +75,7 @@ struct SettingsView: View {
                     HStack {
                         Text(localizationManager.settingsBuild)
                         Spacer()
-                        Text("1")
+                        Text("ashim.s@gmail.com")
                             .foregroundColor(.secondary)
                     }
                 }

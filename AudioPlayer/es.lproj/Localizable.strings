@@ -17,7 +17,7 @@
 "settings.supported.formats.list" = "MP3, M4A/AAC, WAV, AIFF, FLAC (cuando sea compatible)";
 "settings.import.description" = "Importa archivos de audio desde la app Archivos, iCloud Drive u otras fuentes.";
 "settings.version" = "Versión";
-"settings.build" = "Compilación";
+"settings.build" = "Errores/Comentarios";
 
 // Library view
 "library.title" = "Biblioteca";
