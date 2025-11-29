@@ -16,7 +16,6 @@ struct AudiobookListCard: View {
     
     let audioFile: AudioFile
     let rowIndex: Int
-    @Binding var scrollOffset: CGFloat
     let onDelete: (AudioFile) -> Void
     let onTap: () -> Void
     let onMarkAsPlayed: ((AudioFile) -> Void)?
@@ -58,13 +57,14 @@ struct AudiobookListCard: View {
     
 
     var body: some View {
+        GeometryReader { geometry in
             ZStack() {
                 HStack(spacing: 0) {
                     
                     if isImageLeft {
                         
                         // Image (50%)
-                        coverImageSection
+                        coverImageSection(geometry: geometry)
                             .frame(width: coverSize)
                         
                         // InfoText (50%)
@@ -87,7 +87,7 @@ struct AudiobookListCard: View {
                             .frame(width: infoTextWidth)
                         
                         // Image (50%)
-                        coverImageSection
+                        coverImageSection(geometry: geometry)
                             .frame(width: coverSize)
                         
                         
@@ -95,7 +95,7 @@ struct AudiobookListCard: View {
                 }
                 //.frame(maxWidth: .infinity, alignment: .center)
                 .padding()
-        
+            }
         }
     .onTapGesture(perform: onTap)
     .contextMenu {
@@ -174,9 +174,6 @@ struct AudiobookListCard: View {
         .onDisappear {
             // no-op
         }
-        .onChange(of: scrollOffset) { _, _ in
-            //updateRotation()
-        }
         .task {
             if let artworkURL = audioFile.artworkURL {
                 let color = await DominantColorExtractor.shared.extractDominantColor(from: artworkURL)
@@ -187,18 +184,20 @@ struct AudiobookListCard: View {
         }
     }
     
-    // MARK: - Rotation Update Method
+    // MARK: - Rotation Calculation
     
-    private var rotation: Double {
-        let rotationPercentage = abs(scrollOffset) / 250 // Use abs() to handle negative values
-        let scrollRotation = maxRotation * min(rotationPercentage, 1.0)
+    private func rotation(for geometry: GeometryProxy) -> Double {
+        let yPosition = geometry.frame(in: .global).minY
+        let scrollProgress = abs(yPosition) / 250
+        let scrollRotation = maxRotation * min(scrollProgress, 1.0)
         return initialRotation + scrollRotation
     }
     
     // MARK: - UI Components
     
-    private var coverImageSection: some View {
+    private func coverImageSection(geometry: GeometryProxy) -> some View {
         let bleedAmount = coverSize * 0.2
+        let rotation = rotation(for: geometry)
         
         return ZStack(alignment: .center) {
             Rectangle()
