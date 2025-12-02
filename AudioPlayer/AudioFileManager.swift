@@ -833,7 +833,7 @@ class AudioFileManager: ObservableObject {
         if let artworkURL = audioFile.artworkURL {
             print("   artworkURL: \(artworkURL.path)")
             let exists = FileManager.default.fileExists(atPath: artworkURL.path)
-            print("   File exists: \(exists)")
+            print("   File exists at URL: \(exists)")
             
             if exists {
                 do {
@@ -861,7 +861,7 @@ class AudioFileManager: ObservableObject {
         
         do {
             let files = try FileManager.default.contentsOfDirectory(at: artworkDirectory, includingPropertiesForKeys: [.fileSizeKey], options: [])
-            print("🎨 Found \(files.count) artwork files:")
+            print("🎨 Found artwork files: \(files.count)")
             
             for file in files {
                 do {
@@ -974,7 +974,8 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully removed custom artwork for: \(audioFile.title ?? "Unknown")")
+                let title = audioFile.title ?? "Unknown"
+                print("✅ Successfully removed custom artwork for: \(title)")
             } catch {
                 print("❌ Failed to save context after removing artwork: \(error)")
             }
