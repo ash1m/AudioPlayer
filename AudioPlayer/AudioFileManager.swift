@@ -592,7 +592,6 @@ class AudioFileManager: ObservableObject {
         
         // Basic metadata extraction
         // Note: Ignoring title from metadata - using filename instead
-        var title: String? = nil
         var artist: String?
         var album: String?
         var genre: String?
@@ -619,7 +618,7 @@ class AudioFileManager: ObservableObject {
         }
         
         return AudioMetadata(
-            title: title,
+            title: nil,
             artist: artist,
             album: album,
             genre: genre,
@@ -1024,7 +1023,7 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully saved custom artwork for folder: \(folder.name)")
+                print("✅ Successfully saved custom artwork for folder: \(folder.name ?? "Folder")")
                 
                 // Notify AudioPlayerService if we're playing from this folder
                 if let currentFile = audioPlayerService?.currentAudioFile,
@@ -1053,7 +1052,7 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully removed custom artwork for folder: \(folder.name)")
+                print("✅ Successfully removed custom artwork for folder: \(folder.name ?? "Folder")")
             } catch {
                 print("❌ Failed to save context after removing folder artwork: \(error)")
             }
