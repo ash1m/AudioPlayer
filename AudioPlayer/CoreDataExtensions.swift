@@ -103,7 +103,7 @@ extension Folder {
     }
     
     func getCurrentFolderPosition() -> TimeInterval {
-        return lastPlayedPosition ?? 0
+        return lastPlayedPosition
     }
     
     func savePlaybackState(position: TimeInterval) {
@@ -112,7 +112,7 @@ extension Folder {
     }
     
     func hasPlaybackState() -> Bool {
-        return lastPlayedPosition ?? 0 > 0
+        return lastPlayedPosition > 0
     }
     
     func getResumeAudioFile() -> AudioFile? {
@@ -120,7 +120,7 @@ extension Folder {
     }
     
     func getResumePosition() -> TimeInterval {
-        return lastPlayedPosition ?? 0
+        return lastPlayedPosition
     }
 }
 
@@ -136,7 +136,7 @@ extension Playlist {
     
     var orderedItems: [PlaylistItem] {
         let set = playlistItems as? Set<PlaylistItem> ?? []
-        return Array(set).sorted { ($0.order ?? 0) < ($1.order ?? 0) }
+        return Array(set).sorted { ($0.order) < ($1.order) }
     }
 }
 

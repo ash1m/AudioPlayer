@@ -431,7 +431,8 @@ class AudioPlayerService: NSObject, ObservableObject {
         // Get the most current time from the player if available
         let actualCurrentTime = player?.currentTime().seconds ?? currentTime
         
-        print("🎵 Setting Now Playing info for: \(audioFile.title ?? audioFile.fileName)")
+        let title = audioFile.title ?? (audioFile.fileName ?? "Unknown")
+        print("🎵 Setting Now Playing info for: \(title)")
         print("🔊 Duration: \(duration), Actual Time: \(actualCurrentTime), Playing: \(isPlaying), Rate: \(playbackRate)")
         
         // Determine duration and elapsed time based on playback context
@@ -455,7 +456,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Use more standard media type
         var nowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: audioFile.title ?? audioFile.fileName,
+            MPMediaItemPropertyTitle: (title as Any),
             MPMediaItemPropertyArtist: audioFile.artist ?? "Unknown Artist",
             MPMediaItemPropertyAlbumTitle: displayAlbumTitle,
             MPMediaItemPropertyPlaybackDuration: displayDuration,
@@ -486,8 +487,9 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Add additional context if playing from playlist (folder context already set above)
         if isPlayingFromPlaylist, let playlist = currentPlaylist {
-            nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = playlist.name
-            print("🎵 Playing from playlist: \(playlist.name)")
+            let playlistName = playlist.name ?? "Unknown Playlist"
+            nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = (playlistName as Any)
+            print("🎵 Playing from playlist: \(playlistName)")
         }
         
         // Set the Now Playing info
@@ -544,7 +546,8 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
         
         guard let fileURL = audioFile.fileURL else {
-            print("Invalid file URL for audio file: \(audioFile.fileName)")
+            let fileName = audioFile.fileName ?? "Unknown"
+            print("Invalid file URL for audio file: \(fileName)")
             return
         }
         
@@ -587,7 +590,8 @@ class AudioPlayerService: NSObject, ObservableObject {
             print("📱 Now Playing info set for loaded track")
         }
         
-        print("Successfully loaded audio file: \(audioFile.fileName)")
+        let fileName = audioFile.fileName ?? "Unknown"
+        print("Successfully loaded audio file: \(fileName)")
     }
     
     func play() {
@@ -747,7 +751,7 @@ class AudioPlayerService: NSObject, ObservableObject {
     private func updateFolderProgress() {
         guard isPlayingFromFolder,
               let folder = currentFolder,
-              let currentFile = currentAudioFile else {
+              currentAudioFile != nil else {
             // Not playing from folder, reset folder progress
             if folderTotalDuration != 0 || folderCurrentTime != 0 {
                 folderTotalDuration = 0
@@ -763,7 +767,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
         
         // Update current folder position (throttle expensive calculations)
-        let actualCurrentTime = player?.currentTime().seconds ?? currentTime
+        let _ = player?.currentTime().seconds ?? currentTime
         let newFolderCurrentTime = folder.getCurrentFolderPosition()
         
         // Only update if significant change (reduce @Published updates)

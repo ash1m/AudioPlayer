@@ -17,7 +17,7 @@ struct SettingsView: View {
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @EnvironmentObject var themeManager: ThemeManager
-    @StateObject private var localizationManager = LocalizationManager.shared
+    @EnvironmentObject var localizationManager: LocalizationManager
     
     
     var body: some View {
@@ -109,7 +109,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle(localizationManager.settingsTitle)
-            .accessibilityLabel("Settings")
+           // .accessibilityLabel("Settings")
             .onAppear {
                 accessibilityManager.announceScreenChange()
             }
