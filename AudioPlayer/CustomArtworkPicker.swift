@@ -91,6 +91,7 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
                 print("📎 Found .referenceURL: \(referenceURL)")
                 
                 // Fetch the PHAsset from the reference URL
+                // Note: Using deprecated APIs for legacy iCloud photo support (necessary for certain old iCloud photos)
                 let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [referenceURL], options: nil)
                 
                 if let asset = fetchResult.firstObject {

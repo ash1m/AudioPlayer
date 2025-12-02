@@ -827,8 +827,10 @@ class AudioFileManager: ObservableObject {
     // MARK: - Artwork Diagnostics
     
     func debugArtworkStatus(for audioFile: AudioFile) {
-        print("🎨 Debugging artwork for: \(audioFile.title ?? "Unknown")")
-        print("   artworkPath: \(audioFile.artworkPath ?? "nil")")
+        let title = audioFile.title ?? "Unknown"
+        let artworkPath = audioFile.artworkPath ?? "nil"
+        print("🎨 Debugging artwork for: \(title)")
+        print("   artworkPath: \(artworkPath)")
         
         if let artworkURL = audioFile.artworkURL {
             print("   artworkURL: \(artworkURL.path)")
@@ -861,7 +863,8 @@ class AudioFileManager: ObservableObject {
         
         do {
             let files = try FileManager.default.contentsOfDirectory(at: artworkDirectory, includingPropertiesForKeys: [.fileSizeKey], options: [])
-            print("🎨 Found artwork files: \(files.count)")
+            let fileCount = files.count
+            print("🎨 Found artwork files: \(fileCount)")
             
             for file in files {
                 do {
@@ -974,8 +977,8 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                let title = audioFile.title ?? "Unknown"
-                print("✅ Successfully removed custom artwork for: \(title)")
+                let audioTitle = audioFile.title ?? "Unknown"
+                print("✅ Successfully removed custom artwork for: \(audioTitle)")
             } catch {
                 print("❌ Failed to save context after removing artwork: \(error)")
             }
@@ -1024,7 +1027,8 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully saved custom artwork for folder: \(folder.name ?? "Folder")")
+                let folderDisplayName = folder.name ?? "Folder"
+                print("✅ Successfully saved custom artwork for folder: \(folderDisplayName)")
                 
                 // Notify AudioPlayerService if we're playing from this folder
                 if let currentFile = audioPlayerService?.currentAudioFile,
@@ -1053,7 +1057,8 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully removed custom artwork for folder: \(folder.name ?? "Folder")")
+                let folderDisplayName = folder.name ?? "Folder"
+                print("✅ Successfully removed custom artwork for folder: \(folderDisplayName)")
             } catch {
                 print("❌ Failed to save context after removing folder artwork: \(error)")
             }
