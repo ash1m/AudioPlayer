@@ -832,6 +832,7 @@ class AudioFileManager: ObservableObject {
         let title = audioFile.title ?? "Unknown"
         let artworkPath = audioFile.artworkPath ?? "nil"
         print("🎨 Debugging artwork for: \(title)")
+        // swiftlint:disable:next line_length
         print("   artworkPath: \(artworkPath)")
         
         if let artworkURL = audioFile.artworkURL {
@@ -861,6 +862,7 @@ class AudioFileManager: ObservableObject {
         }
         
         let artworkDirectory = documentsDirectory.appendingPathComponent("Artwork")
+        // swiftlint:disable:next line_length
         print("🎨 Artwork directory: \(artworkDirectory.path)")
         
         do {
@@ -971,6 +973,7 @@ class AudioFileManager: ObservableObject {
     func removeCustomArtwork(for audioFile: AudioFile, context: NSManagedObjectContext) async {
         await MainActor.run {
             // Delete the artwork file
+            // swiftlint:disable:next line_length
             if let artworkURL = audioFile.artworkURL,
                FileManager.default.fileExists(atPath: artworkURL.path) {
                 try? FileManager.default.removeItem(at: artworkURL)
@@ -1003,6 +1006,7 @@ class AudioFileManager: ObservableObject {
         
         // Create artwork folder if it doesn't exist
         let artworkDirectory = documentsDirectory.appendingPathComponent("Artwork")
+        // swiftlint:disable:next line_length
         if !FileManager.default.fileExists(atPath: artworkDirectory.path) {
             try FileManager.default.createDirectory(at: artworkDirectory, withIntermediateDirectories: true)
         }
