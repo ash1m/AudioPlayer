@@ -378,7 +378,8 @@ struct LibraryGridView: View {
                     refreshContent()
                     
                     // Announce success for VoiceOver users
-                    accessibilityManager.announceMessage("Custom artwork set for folder \(folder.name)")
+                    let folderDisplayName = folder.name ?? "folder"
+                    accessibilityManager.announceMessage("Custom artwork set for folder \(folderDisplayName)")
                 }
                 
             } catch {
@@ -400,7 +401,8 @@ struct LibraryGridView: View {
                 refreshContent()
                 
                 // Announce removal for VoiceOver users
-                accessibilityManager.announceMessage("Custom artwork removed from folder \(folder.name)")
+                let folderDisplayName = folder.name ?? "folder"
+                accessibilityManager.announceMessage("Custom artwork removed from folder \(folderDisplayName)")
             }
         }
     }

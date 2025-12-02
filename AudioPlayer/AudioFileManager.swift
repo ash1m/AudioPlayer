@@ -740,7 +740,8 @@ class AudioFileManager: ObservableObject {
                         print("🎨 [ARTWORK EXTRACT] Successfully extracted artwork data (\(artworkData.count) bytes)")
                         // Save artwork to disk - use fileName for consistency
                         let savedPath = await saveArtworkToDisk(artworkData, fileName: fileName)
-                        print("🎨 [ARTWORK EXTRACT] Saved embedded artwork to: \(savedPath ?? "failed")")
+                        let savedPathStr = savedPath ?? "failed"
+                        print("🎨 [ARTWORK EXTRACT] Saved embedded artwork to: \(savedPathStr)")
                         return savedPath
                     }
                 }
@@ -759,7 +760,8 @@ class AudioFileManager: ObservableObject {
                     let artworkData = try Data(contentsOf: folderArtworkURL)
                     print("🎨 [ARTWORK EXTRACT] Using folder artwork: \(folderArtworkURL.lastPathComponent) (\(artworkData.count) bytes)")
                     let savedPath = await saveArtworkToDisk(artworkData, fileName: fileName)
-                    print("🎨 [ARTWORK EXTRACT] Saved folder artwork to: \(savedPath ?? "failed")")
+                    let savedPathStr = savedPath ?? "failed"
+                    print("🎨 [ARTWORK EXTRACT] Saved folder artwork to: \(savedPathStr)")
                     return savedPath
                 } catch {
                     print("🎨 [ARTWORK EXTRACT] Could not read folder artwork: \(error)")
@@ -899,7 +901,8 @@ class AudioFileManager: ObservableObject {
                         artworkFileExists += 1
                     } else {
                         artworkFileMissing += 1
-                        print("   ❌ Missing artwork for: \(audioFile.title ?? "Unknown")")
+                        let audioTitle = audioFile.title ?? "Unknown"
+                        print("   ❌ Missing artwork for: \(audioTitle)")
                     }
                 }
             }
@@ -951,7 +954,8 @@ class AudioFileManager: ObservableObject {
             
             do {
                 try context.save()
-                print("✅ Successfully saved custom artwork for: \(audioFile.title ?? "Unknown")")
+                let audioTitle = audioFile.title ?? "Unknown"
+                print("✅ Successfully saved custom artwork for: \(audioTitle)")
                 
                 // Notify AudioPlayerService if this is the currently playing file
                 audioPlayerService?.artworkDidUpdate(for: audioFile)
