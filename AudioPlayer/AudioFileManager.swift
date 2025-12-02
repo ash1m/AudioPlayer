@@ -832,7 +832,6 @@ class AudioFileManager: ObservableObject {
         let title = audioFile.title ?? "Unknown"
         let artworkPath = audioFile.artworkPath ?? "nil"
         print("🎨 Debugging artwork for: \(title)")
-        // swiftlint:disable:next line_length
         print("   artworkPath: \(artworkPath)")
         
         if let artworkURL = audioFile.artworkURL {

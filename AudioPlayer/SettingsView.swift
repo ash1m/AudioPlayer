@@ -109,7 +109,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle(localizationManager.settingsTitle)
-           // .accessibilityLabel("Settings")
+            .accessibilityLabel("Settings")
             .onAppear {
                 accessibilityManager.announceScreenChange()
             }
