@@ -25,6 +25,8 @@ struct LibraryGridView: View {
     @EnvironmentObject var audioFileManager: AudioFileManager
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @EnvironmentObject var localizationManager: LocalizationManager
+    @EnvironmentObject var themeManager: ThemeManager
+    @Environment(\.appTheme) var appTheme
     
     let navigateToPlayer: () -> Void
     let navigateToSettings: () -> Void
@@ -483,15 +485,15 @@ struct LibraryGridView: View {
             
             VStack(spacing: 8) {
                 Text(folderNavigationManager.isInFolder ? localizationManager.libraryEmptyFolderMessage : localizationManager.libraryEmptyMessage)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(appTheme.secondaryTextColor)
                 
                 HStack(alignment: .top, spacing: 4) {
                     Text(localizationManager.libraryImportInstructions)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryTextColor)
                     Image(systemName: "plus.circle")
-                        .foregroundColor(.white)
+                        .foregroundColor(appTheme.accentColor)
                     Text(localizationManager.libraryImportButtonLabel)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(appTheme.secondaryTextColor)
                 }
                 
             }

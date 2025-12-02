@@ -233,8 +233,6 @@
 "import.details.failure.section" = "インポートに失敗しました（%d）";
 
 // Sleep Timer
-"sleep.timer.title" = "スリープタイマー";
-"sleep.timer.description" = "自動的に再生を一時停止するタイマーを設定します";
 "sleep.timer.choose.duration" = "時間を選択";
 "sleep.timer.timer.active" = "タイマー作動中";
 "sleep.timer.remaining" = "残り";

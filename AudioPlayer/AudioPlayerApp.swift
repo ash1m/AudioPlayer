@@ -15,6 +15,7 @@ struct AudioPlayerApp: App {
     @StateObject private var audioFileManager = AudioFileManager()
     @StateObject private var accessibilityManager = AccessibilityManager()
     @StateObject private var localizationManager = LocalizationManager.shared
+    @StateObject private var themeManager = ThemeManager()
     
     var body: some Scene {
         WindowGroup {
@@ -24,6 +25,8 @@ struct AudioPlayerApp: App {
                 .environmentObject(audioFileManager)
                 .environmentObject(accessibilityManager)
                 .environmentObject(localizationManager)
+                .environmentObject(themeManager)
+                .environment(\.appTheme, AppTheme(isDark: themeManager.isDarkMode))
         }
     }
 }

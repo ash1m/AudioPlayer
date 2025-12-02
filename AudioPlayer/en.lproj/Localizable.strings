@@ -13,7 +13,7 @@
 "settings.language.label" = "App language";
 "settings.language.hint" = "Choose the app's display language";
 "language.currently.set" = "Currently set to %@";
-"settings.supported.formats" = "Supported formats";
+"settings.supported.formats" = "Supported Formats";
 "settings.supported.formats.list" = "MP3, M4A/AAC, WAV, AIFF, FLAC (where supported)";
 "settings.import.description" = "Import audio files from the Files app, iCloud Drive, or other sources.";
 "settings.version" = "Version";
@@ -233,8 +233,6 @@
 "import.details.failure.section" = "Failed to Import (%d)";
 
 // Sleep Timer
-"sleep.timer.title" = "Sleep Timer";
-"sleep.timer.description" = "Set a timer to automatically pause playback";
 "sleep.timer.choose.duration" = "Choose Duration";
 "sleep.timer.timer.active" = "Timer Active";
 "sleep.timer.remaining" = "remaining";

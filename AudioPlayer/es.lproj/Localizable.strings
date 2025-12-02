@@ -233,8 +233,6 @@
 "import.details.failure.section" = "Error al importar (%d)";
 
 // Sleep Timer
-"sleep.timer.title" = "Temporizador de suspensión";
-"sleep.timer.description" = "Establece un temporizador para pausar automáticamente la reproducción";
 "sleep.timer.choose.duration" = "Elegir duración";
 "sleep.timer.timer.active" = "Temporizador activo";
 "sleep.timer.remaining" = "restante";

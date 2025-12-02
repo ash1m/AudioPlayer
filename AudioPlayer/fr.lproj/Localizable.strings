@@ -233,8 +233,6 @@
 "import.details.failure.section" = "Échec de l'importation (%d)";
 
 // Sleep Timer
-"sleep.timer.title" = "Minuteur de mise en veille";
-"sleep.timer.description" = "Définir un minuteur pour mettre automatiquement en pause la lecture";
 "sleep.timer.choose.duration" = "Choisir la durée";
 "sleep.timer.timer.active" = "Minuteur actif";
 "sleep.timer.remaining" = "restant";

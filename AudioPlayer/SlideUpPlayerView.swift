@@ -56,9 +56,6 @@ struct SlideUpPlayerView: View {
                             }
                         }
                     )
-                    //.offset(y: dragOffset)
-                    //.animation(.spring(response: 0.5, dampingFraction: 0.8), value: playerState)
-                    //.animation(.spring(response: 0.3, dampingFraction: 0.8), value: dragOffset)
                     .gesture(dragGesture)
             }
             .onAppear {
@@ -80,8 +77,10 @@ struct SlideUpPlayerView: View {
                 GroupFilesListView(files: audioPlayerService.groupedFilesQueue, currentIndex: audioPlayerService.currentGroupedFileIndex)
             }
         }
-        .confirmationDialog("Playback Speed", isPresented: $isShowingSpeedOptions, titleVisibility: .visible) {
+        .sheet(isPresented: $isShowingSpeedOptions) {
             speedDialogButtons
+                //.presentationDetents([.height(300)]) // Partial height
+                .presentationDragIndicator(.visible)
         }
         .onChange(of: audioPlayerService.currentTime) { oldValue, newValue in
             // Only update if significant change (reduce excessive UI updates)
@@ -105,43 +104,22 @@ struct SlideUpPlayerView: View {
     
     @ViewBuilder
     private var speedDialogButtons: some View {
-        Button("0.5x") {
-            audioPlayerService.setPlaybackRate(0.5)
-            accessibilityManager.announceMessage("Playback speed set to 0.5x speed")
+        VStack(spacing: 12) {
+            ForEach([0.5, 0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { speed in
+                Button {
+                    audioPlayerService.setPlaybackRate(speed)
+                    accessibilityManager.announceMessage("Playback speed set to \(speed)x")
+                    isShowingSpeedOptions = false // Dismiss after selection
+                } label: {
+                    Text("\(speed, specifier: "%.2g")x")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                }
+            }
         }
-        .accessibilityLabel("0.5x speed")
-        
-        Button("0.75x") {
-            audioPlayerService.setPlaybackRate(0.75)
-            accessibilityManager.announceMessage("Playback speed set to 0.75x speed")
-        }
-        .accessibilityLabel("0.75x speed")
-        
-        Button("1.0x") {
-            audioPlayerService.setPlaybackRate(1.0)
-            accessibilityManager.announceMessage("Playback speed set to normal speed")
-        }
-        .accessibilityLabel("Normal speed")
-        
-        Button("1.25x") {
-            audioPlayerService.setPlaybackRate(1.25)
-            accessibilityManager.announceMessage("Playback speed set to 1.25x speed")
-        }
-        .accessibilityLabel("1.25x speed")
-        
-        Button("1.5x") {
-            audioPlayerService.setPlaybackRate(1.5)
-            accessibilityManager.announceMessage("Playback speed set to 1.5x speed")
-        }
-        .accessibilityLabel("1.5x speed")
-        
-        Button("2.0x") {
-            audioPlayerService.setPlaybackRate(2.0)
-            accessibilityManager.announceMessage("Playback speed set to 2x speed")
-        }
-        .accessibilityLabel("2x speed")
-        
-        Button("Cancel", role: .cancel) { }
+        .padding()
     }
     
     @ViewBuilder
@@ -197,12 +175,12 @@ struct SlideUpPlayerView: View {
     
     private var expandedPlayer: some View {
         AccessibleExpandedPlayer {
-            VStack(spacing: 16) {
+            VStack() {
                 // Drag handle at top - now with gesture
                 expandedPlayerDragHandle
                 
                 // Main content with adaptive spacing
-                VStack(spacing: 16) {
+                VStack(spacing: 24) {
                     // Book artwork with overlay details
                     artworkBackground
                         .frame(width: 280, height: 280)
@@ -214,7 +192,7 @@ struct SlideUpPlayerView: View {
                     
                     // Book Details
                     bookDetailsOverlay
-                    
+
                     // Playback controls group
                     playbackControlsGroup
                     
@@ -224,11 +202,10 @@ struct SlideUpPlayerView: View {
                     // Bottom options (Sleep/Speed)
                     bottomOptions
                 }
-                //.padding(.bottom)
-                
-               Spacer(minLength: 10) // Flexible bottom spacing
             }
-        } onEscape: {
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 playerState = .minimized
                 accessibilityManager.announceMessage("Player minimized")
@@ -255,10 +232,6 @@ struct SlideUpPlayerView: View {
                             // Minimize if dragged down
                             if translation > 50 {
                                 playerState = .minimized
-                            }
-                            // Dismiss if dragged down very far
-                            else if translation > 150 {
-                                audioPlayerService.clearCurrentFile()
                             }
                         }
                         dragOffset = 0
@@ -338,8 +311,6 @@ struct SlideUpPlayerView: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
     }
     
     private var playbackControlsGroup: some View {

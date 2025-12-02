@@ -67,17 +67,14 @@ struct AudiobookListCard: View {
                         coverImageSection(geometry: geometry)
                             .padding(.trailing, marginWidth)
                             .frame(width: coverSize)
-                            //.background(Color.blue)
                         
                         // InfoText
                         textSection
                             .frame(width: infoTextWidth)
-                            //.background(Color.yellow)
 
                         // Margin (bleeds off-screen)
                         Color.clear
                             .frame(width: marginWidth)
-                            //.background(Color.red)
                         
                     }
                     else {
@@ -86,17 +83,14 @@ struct AudiobookListCard: View {
                         textSection
                             .padding(.leading, marginWidth*0.25)
                             .frame(width: infoTextWidth)
-                            //.background(Color.yellow)
                         
                         // Image
                         coverImageSection(geometry: geometry)
                             .frame(width: coverSize)
-                            //.background(Color.blue)
 
                         // Margin (bleeds off-screen)
                         //Color.clear
                         //    .frame(width: marginWidth)
-                        //    .background(Color.red)
                     }
                 }
                 .frame(maxWidth: totalRowWidth, alignment: .center)
@@ -260,7 +254,7 @@ struct AudiobookListCard: View {
                     Text(audioFile.title ?? audioFile.originalFileNameWithoutExtension)
                         .font(.custom("TiemposText-Bold", size: 24))
                         .foregroundColor(.white)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .truncationMode(.tail)
                         .multilineTextAlignment(.leading)  // ADD THIS
                             .fixedSize(horizontal: false, vertical: true)  // ADD THIS

@@ -233,8 +233,6 @@
 "import.details.failure.section" = "Impossibile importare (%d)";
 
 // Sleep Timer
-"sleep.timer.title" = "Timer di spegnimento";
-"sleep.timer.description" = "Imposta un timer per mettere automaticamente in pausa la riproduzione";
 "sleep.timer.choose.duration" = "Scegli durata";
 "sleep.timer.timer.active" = "Timer attivo";
 "sleep.timer.remaining" = "rimanente";

@@ -126,8 +126,6 @@ class LocalizationManager: ObservableObject {
     
     // MARK: - Sleep Timer
     
-    var sleepTimerTitle: String { localizedString("sleep.timer.title") }
-    var sleepTimerDescription: String { localizedString("sleep.timer.description") }
     var sleepTimerChooseDuration: String { localizedString("sleep.timer.choose.duration") }
     var sleepTimerTimerActive: String { localizedString("sleep.timer.timer.active") }
     var sleepTimerRemaining: String { localizedString("sleep.timer.remaining") }

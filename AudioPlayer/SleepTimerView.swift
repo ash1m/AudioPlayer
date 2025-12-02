@@ -37,28 +37,16 @@ struct SleepTimerView: View {
             VStack(spacing: AccessibleSpacing.expanded(for: dynamicTypeSize)) {
                 // Header
                 VStack(spacing: AccessibleSpacing.standard(for: dynamicTypeSize)) {
-                    Image(systemName: "moon.zzz.fill")
+                    Image(systemName: "speaker.zzz")
+                        //.symbolEffect(.drawOn.individually, options: .nonRepeating)
                         .font(FontManager.font(.regular, size: dynamicTypeSize.isLargeSize ? 48 : 60))
                         .foregroundColor(.accentColor)
                         .accessibilityHidden(true)
                         .highContrastSupport(normal: .accentColor, highContrast: .primary)
-                    
-                    Text(localizationManager.sleepTimerTitle)
-                        .dynamicTypeSupport(.title, maxSize: .accessibility3)
-                        .fontWeight(.semibold)
-                        .accessibilityAddTraits(.isHeader)
-                        .visualAccessibility()
-                    
-                    Text(localizationManager.sleepTimerDescription)
-                        .dynamicTypeSupport(.body, maxSize: .accessibility2, lineLimit: 3)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .visualAccessibility(foreground: .secondary)
+                        
                 }
                 .accessiblePadding(.horizontal, dynamicTypeSize: dynamicTypeSize)
-                
-                Spacer()
-                
+                                
                 // Current Timer Status
                 if accessibilityManager.sleepTimerActive {
                     currentTimerStatusView
@@ -74,7 +62,6 @@ struct SleepTimerView: View {
                 actionButtonsView
             }
             .accessiblePadding(dynamicTypeSize: dynamicTypeSize)
-            .navigationTitle(localizationManager.sleepTimerTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(accessibilityManager.sleepTimerActive)
             .toolbar {
@@ -153,7 +140,6 @@ struct SleepTimerView: View {
                 }
                 .padding(.horizontal, AccessibleSpacing.standard(for: dynamicTypeSize))
             }
-            .frame(maxHeight: 300) // Limit height to make it scrollable
         }
     }
     

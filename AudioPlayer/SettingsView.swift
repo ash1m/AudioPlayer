@@ -16,20 +16,65 @@ struct SettingsView: View {
     @EnvironmentObject var audioFileManager: AudioFileManager
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var accessibilityManager: AccessibilityManager
+    @EnvironmentObject var themeManager: ThemeManager
     @ObservedObject private var localizationManager = LocalizationManager.shared
     
     
     var body: some View {
         NavigationStack {
             List {
+                
+                // Import Section
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(localizationManager.settingsSupportedFormats)
+                            .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
+                        
+                        Text(localizationManager.settingsSupportedFormatsList)
+                            .font(FontManager.font(.regular, size: 15))
+                            .foregroundColor(.secondary)
+                        
+                        Text(localizationManager.settingsImportDescription)
+                            .font(FontManager.font(.regular, size: 15))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
+                    }
+                    .padding(8)
+                }
+                .listRowBackground(Color.clear)
+                
+                
+                // Theme Section
+                Section {
+                    Picker("Theme", selection: Binding(
+                        get: { themeManager.themePreference },
+                        set: { themeManager.setThemePreference($0) }
+                    )) {
+                        ForEach(ThemeManager.ThemePreference.allCases, id: \.self) { preference in
+                            Text(preference.displayName)
+                                .tag(preference)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .accessibilityLabel("Theme")
+                    .accessibilityValue(themeManager.themePreference.displayName)
+                    .accessibilityHint("Choose between dark, light, or system theme")
+                }
+                
                 // Language Section
                 Section {
                     Picker(localizationManager.localizedString("settings.language"), selection: $settingsManager.selectedLanguage) {
                         ForEach(SettingsManager.Language.allCases, id: \.self) { language in
                             HStack {
+                                Text(language.flagEmoji)
+                                        .font(.title2)
+                                        .dynamicTypeSupport(.body, maxSize: .accessibility2)
+                                
                                 Text(language.displayName)
                                     .dynamicTypeSupport(.body, maxSize: .accessibility2)
+                                
                                 Spacer()
+                                
                                 Text(language.rawValue.uppercased())
                                     .dynamicTypeSupport(.caption, maxSize: .accessibility1)
                                     .foregroundColor(.secondary)
@@ -45,24 +90,7 @@ struct SettingsView: View {
                 }
                 
                 
-                // Import Section
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(localizationManager.settingsSupportedFormats)
-                            .font(FontManager.fontWithSystemFallback(weight: .medium, size: 15))
-                        
-                        Text(localizationManager.settingsSupportedFormatsList)
-                            .font(FontManager.font(.regular, size: 12))
-                            .foregroundColor(.secondary)
-                        
-                        Text(localizationManager.settingsImportDescription)
-                            .font(FontManager.font(.regular, size: 13))
-                            .foregroundColor(.secondary)
-                            .padding(.top, 4)
-                    }
-                    .padding(.vertical, 4)
-                }
-                
+              
                 // App Info Section
                 Section {
                     HStack {

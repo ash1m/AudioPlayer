@@ -30,6 +30,18 @@ class SettingsManager: ObservableObject {
             case .japanese: return "日本語"
             }
         }
+        
+        var flagEmoji: String {
+                switch self {
+                case .english: return "🇬🇧"
+                case .spanish: return "🇪🇸"
+                case .french: return "🇫🇷"
+                case .german: return "🇩🇪"
+                case .italian: return "🇮🇹"
+                case .portuguese: return "🇵🇹"
+                case .japanese: return "🇯🇵"
+                }
+            }
     }
     
     enum PlaybackSpeed: Double, CaseIterable {
