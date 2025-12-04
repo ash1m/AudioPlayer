@@ -57,6 +57,7 @@ struct SlideUpPlayerView: View {
                             }
                         }
                     )
+                    .offset(y: calculatePlayerContentOffset())
                     .scaleEffect(calculatePlayerContentScale())
                     .opacity(calculatePlayerContentOpacity())
                     .gesture(dragGesture)
@@ -632,6 +633,17 @@ struct SlideUpPlayerView: View {
     }
     
     // MARK: - Drag Animation Calculations
+    
+    private func calculatePlayerContentOffset() -> CGFloat {
+        // Only apply offset when dragging down and expanded
+        guard playerState == .expanded else { return 0 }
+        
+        // Limit offset so player doesn't go off-screen
+        // Allow it to move down but keep some visible
+        let maxOffset = 300.0 // Maximum pixels to offset
+        let offset = min(dragOffset, maxOffset)
+        return offset > 0 ? offset : 0
+    }
     
     private func calculatePlayerContentScale() -> CGFloat {
         // Only apply scale when dragging down (dragOffset > 0) and expanded
