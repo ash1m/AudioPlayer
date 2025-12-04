@@ -707,22 +707,31 @@ struct SlideUpPlayerView: View {
                         // Expand if dragged up significantly
                         else if translation < -50 {
                             playerState = .expanded
+                        } else {
+                            // Reset drag offset for spring animation back up
+                            dragOffset = 0
                         }
                     } else {
                         // Minimize if dragged down significantly from expanded state
                         if translation > 100 {
                             playerState = .minimized
+                            dragOffset = 0
                         }
                         // Dismiss if dragged down very far from expanded state
                         else if translation > 200 {
                             audioPlayerService.clearCurrentFile()
                             dragOffset = 0
+                        } else {
+                            // Continue animating downward with momentum before resetting
+                            // Add extra offset to simulate momentum continuation
+                            dragOffset = translation + 100
+                            // Then reset after a short delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation(.easeIn(duration: 0.4)) {
+                                    dragOffset = 1000 // Animate off-screen
+                                }
+                            }
                         }
-                    }
-                    
-                    // Reset drag offset if not dismissing
-                    if audioPlayerService.currentAudioFile != nil {
-                        dragOffset = 0
                     }
                 }
             }
