@@ -15,8 +15,9 @@ class LocalizationManager: ObservableObject {
     // MARK: - Current Language
     @Published var currentLanguage: String = "en" {
         didSet {
-            // Force view refresh by sending objectWillChange notification
-            objectWillChange.send()
+            // Only send notification if language actually changed
+            guard oldValue != currentLanguage else { return }
+            // @Published already sends objectWillChange automatically, no need to call it again
         }
     }
     
@@ -52,6 +53,8 @@ class LocalizationManager: ObservableObject {
             print("Unsupported language: \(languageCode)")
             return
         }
+        
+        guard currentLanguage != languageCode else { return }
         
         currentLanguage = languageCode
         UserDefaults.standard.set(languageCode, forKey: "selectedLanguage")

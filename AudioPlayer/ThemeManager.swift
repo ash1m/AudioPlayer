@@ -55,25 +55,33 @@ class ThemeManager: ObservableObject {
     }
     
     func setThemePreference(_ preference: ThemePreference) {
+        print("🎨 [ThemeManager] Setting theme preference to: \(preference.rawValue)")
         themePreference = preference
         UserDefaults.standard.set(preference.rawValue, forKey: userDefaultsKey)
         updateThemeMode()
+        print("🎨 [ThemeManager] isDarkMode now: \(isDarkMode)")
     }
     
     private func updateThemeMode() {
+        print("🎨 [ThemeManager] updateThemeMode called, preference: \(themePreference.rawValue)")
         switch themePreference {
         case .system:
             // Get the system appearance
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 let isDarkSystemAppearance = windowScene.windows.first?.traitCollection.userInterfaceStyle == .dark
                 isDarkMode = isDarkSystemAppearance
+                print("🎨 [ThemeManager] System mode - isDarkSystemAppearance: \(isDarkSystemAppearance)")
             } else {
                 isDarkMode = true // Default to dark
+                print("🎨 [ThemeManager] System mode - no window scene, defaulting to dark")
             }
         case .dark:
             isDarkMode = true
+            print("🎨 [ThemeManager] Dark mode selected")
         case .light:
             isDarkMode = false
+            print("🎨 [ThemeManager] Light mode selected")
         }
+        print("🎨 [ThemeManager] isDarkMode is now: \(isDarkMode)")
     }
 }

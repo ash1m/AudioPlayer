@@ -31,8 +31,11 @@ class AccessibilityManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     init() {
-        setupAccessibilityNotifications()
-        updateAccessibilitySettings()
+        // Defer accessibility setup to main thread to ensure UIApplication is ready
+        DispatchQueue.main.async { [weak self] in
+            self?.setupAccessibilityNotifications()
+            self?.updateAccessibilitySettings()
+        }
     }
     
     deinit {

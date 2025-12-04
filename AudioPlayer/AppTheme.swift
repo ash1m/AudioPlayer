@@ -12,7 +12,7 @@ struct AppTheme {
     
     // MARK: - Background Colors
     var backgroundColor: Color {
-        isDark ? Color.black : Color.white
+        isDark ? Color.black : Color(UIColor(red: 0.85, green: 0.84, blue: 0.81, alpha: 1))
     }
     
     var secondaryBackgroundColor: Color {

@@ -253,7 +253,7 @@ struct AudiobookListCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(audioFile.title ?? audioFile.originalFileNameWithoutExtension)
                         .font(.custom("TiemposText-Bold", size: 24))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .lineLimit(3)
                         .truncationMode(.tail)
                         .multilineTextAlignment(.leading)  // ADD THIS
@@ -269,7 +269,7 @@ struct AudiobookListCard: View {
                     let displayDuration = totalGroupDuration ?? audioFile.duration
                     Text(TimeInterval(displayDuration).formattedDuration)
                         .font(FontManager.fontWithSystemFallback(weight: .regular, size: 14))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
         
                 
                 // Three-dot menu button

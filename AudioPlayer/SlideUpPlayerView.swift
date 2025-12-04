@@ -18,6 +18,7 @@ struct SlideUpPlayerView: View {
     @EnvironmentObject var audioPlayerService: AudioPlayerService
     @EnvironmentObject var accessibilityManager: AccessibilityManager
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.appTheme) var appTheme
     
     @State private var playerState: PlayerState = .minimized
     @State private var dragOffset: CGFloat = 0
@@ -47,12 +48,12 @@ struct SlideUpPlayerView: View {
                         Group {
                             if playerState == .expanded {
                                 RoundedRectangle(cornerRadius: 25)
-                                    .fill(Color.black) // Dark mode background
-                                    .shadow(color: .black.opacity(0.25), radius: 15, x: 0, y: -2)
+                                    .fill(appTheme.backgroundColor)
+                                    .shadow(color: appTheme.shadowColor, radius: 15, x: 0, y: -2)
                             } else {
                                 RoundedRectangle(cornerRadius: 25)
                                     .fill(.regularMaterial)
-                                    .shadow(color: .black.opacity(0.25), radius: 15, x: 0, y: -2)
+                                    .shadow(color: appTheme.shadowColor, radius: 15, x: 0, y: -2)
                             }
                         }
                     )
@@ -101,6 +102,7 @@ struct SlideUpPlayerView: View {
             updateCachedLabels()
         }
     }
+
     
     @ViewBuilder
     private var speedDialogButtons: some View {
@@ -114,7 +116,7 @@ struct SlideUpPlayerView: View {
                     Text("\(speed, specifier: "%.2g")x")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.gray.opacity(0.2))
+                        .background(appTheme.buttonBackgroundColor)
                         .cornerRadius(8)
                 }
             }
@@ -133,12 +135,11 @@ struct SlideUpPlayerView: View {
     
     private var minimizedPlayer: some View {
         VStack(spacing: 0) {
-            // Drag handle
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.primary.opacity(0.3))
-                .frame(width: 36, height: 4)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+            // Drag handle - chevron up
+            Image(systemName: "chevron.up")
+                .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
+                .foregroundColor(appTheme.textColor.opacity(0.5))
+                .frame(height: 44)
                 .accessibilityHidden(true)
             
             HStack(spacing: 12) {
@@ -192,7 +193,6 @@ struct SlideUpPlayerView: View {
                     
                     // Book Details
                     bookDetailsOverlay
-
                     // Playback controls group
                     playbackControlsGroup
                     
@@ -203,7 +203,8 @@ struct SlideUpPlayerView: View {
                     bottomOptions
                 }
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(appTheme.backgroundColor)
         }
         onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -212,13 +213,14 @@ struct SlideUpPlayerView: View {
             }
         }
     }
+
     
     private var expandedPlayerDragHandle: some View {
-        RoundedRectangle(cornerRadius: 2)
-            .fill(Color.white.opacity(0.3))
-            .frame(width: 80, height: 5)
-            .frame(height: 44) // Increase touch target
-            .contentShape(Rectangle()) // Make entire area draggable
+        Image(systemName: "chevron.down")
+            .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
+            .foregroundColor(appTheme.textColor.opacity(0.5))
+            .frame(height: 44)
+            .contentShape(Rectangle())
             .accessibilityHidden(true)
             .highPriorityGesture(
                 DragGesture()
@@ -242,16 +244,9 @@ struct SlideUpPlayerView: View {
     
     private var artworkBackground: some View {
         let artworkURL = audioPlayerService.currentAudioFile?.artworkURL
-        let fileTitle = audioPlayerService.currentAudioFile?.title ?? "Unknown"
-        
-        if artworkURL != nil {
-            print("🎨 [ExpandedPlayer] Artwork URL found for: \(fileTitle) - \(artworkURL?.path ?? "nil")")
-        } else {
-            print("🎨 [ExpandedPlayer] NO artwork URL for: \(fileTitle) - artworkPath: \(audioPlayerService.currentAudioFile?.artworkPath ?? "nil")")
-        }
         
         return RoundedRectangle(cornerRadius: 0)
-            .fill(Color.gray.opacity(0.2))
+            .fill(appTheme.secondaryBackgroundColor)
             .overlay(
                 Group {
                     if let artworkURL = artworkURL {
@@ -266,7 +261,7 @@ struct SlideUpPlayerView: View {
                                 let _ = print("🎨 LocalAsyncImage (slideup) failed to load artwork: \(error)")
                                 return AnyView(Image(systemName: "music.note")
                                     .font(FontManager.font(.regular, size: 80))
-                                    .foregroundColor(.gray))
+                                    .foregroundColor(appTheme.secondaryTextColor))
                             case .empty:
                                 return AnyView(ProgressView()
                                     .scaleEffect(1.2))
@@ -276,7 +271,7 @@ struct SlideUpPlayerView: View {
                     } else {
                         Image(systemName: "music.note")
                             .font(FontManager.font(.regular, size: 80))
-                            .foregroundColor(.gray)
+                            .foregroundColor(appTheme.secondaryTextColor)
                             .accessibilityHidden(true)
                     }
                 }
@@ -288,7 +283,7 @@ struct SlideUpPlayerView: View {
         LinearGradient(
             gradient: Gradient(stops: [
                 .init(color: .clear, location: 0),
-                .init(color: Color.black.opacity(0.7), location: 1)
+                .init(color: appTheme.backgroundColor.opacity(0.7), location: 1)
             ]),
             startPoint: .top,
             endPoint: .bottom
@@ -301,13 +296,13 @@ struct SlideUpPlayerView: View {
         VStack(alignment: .center, spacing: 2) {
             Text(audioPlayerService.currentAudioFile?.title ?? "Title Long One Line Second")
                 .font(FontManager.font(.regular, size: 20))
-                .foregroundColor(.white)
+                .foregroundColor(appTheme.textColor)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
             
             Text(audioPlayerService.currentAudioFile?.artist ?? "Author Name Long One")
                 .font(FontManager.font(.regular, size: 17))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(appTheme.textColor.opacity(0.8))
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -319,7 +314,7 @@ struct SlideUpPlayerView: View {
             HStack {
                 Text(formatTime(displayCurrentTime))
                     .font(FontManager.font(.regular, size: 17))
-                    .foregroundColor(.white)
+                    .foregroundColor(appTheme.textColor)
                     .accessibilityLabel("Current time \(formatTimeForAccessibility(displayCurrentTime))")
                     .accessibilityHint("Drag to seek")
                     .contentShape(Rectangle())
@@ -339,7 +334,7 @@ struct SlideUpPlayerView: View {
                 
                 Text(formatTime(displayTotalDuration))
                     .font(FontManager.font(.regular, size: 17))
-                    .foregroundColor(.white)
+                    .foregroundColor(appTheme.textColor)
                     .accessibilityLabel("Total duration \(formatTimeForAccessibility(displayTotalDuration))")
             }
             .frame(maxWidth: 313)
@@ -360,7 +355,7 @@ struct SlideUpPlayerView: View {
                 ZStack(alignment: .leading) {
                     // Background track
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.2))
+                        .fill(appTheme.textColor.opacity(0.2))
                         .frame(height: 6)
                     
                     // Progress track (invisible, just for positioning)
@@ -370,10 +365,10 @@ struct SlideUpPlayerView: View {
                     
                     // Knob
                     Circle()
-                        .fill(Color.white)
+                        .fill(appTheme.textColor)
                         .frame(width: 24, height: 24)
-                        .shadow(color: .black.opacity(0.12), radius: 2, x: 0, y: 0.5)
-                        .shadow(color: .black.opacity(0.12), radius: 6.5, x: 0, y: 6)
+                        .shadow(color: appTheme.shadowColor.opacity(0.12), radius: 2, x: 0, y: 0.5)
+                        .shadow(color: appTheme.shadowColor.opacity(0.12), radius: 6.5, x: 0, y: 6)
                         .offset(x: progressWidthForGeometry(geometry) - 12) // Position knob at progress point
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -496,11 +491,11 @@ struct SlideUpPlayerView: View {
     private var progressBarMinimized: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(appTheme.textColor.opacity(0.2))
                 .frame(height: 6)
             
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.blue)
+                .fill(appTheme.accentColor)
                 .frame(width: progressWidthMinimized, height: 6)
         }
     }
@@ -577,10 +572,10 @@ struct SlideUpPlayerView: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .semibold))
             }
-            .foregroundColor(.white)
+            .foregroundColor(appTheme.textColor)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.15))
+            .background(appTheme.textColor.opacity(0.15))
             .cornerRadius(12)
         }
         .accessibilityLabel("Audiobook files")
@@ -690,6 +685,7 @@ struct SlideUpPlayerView: View {
 // MARK: - Glass Morphism Button
 
 struct GlassMorphismButton: View {
+    @Environment(\.appTheme) var appTheme
     let systemIcon: String
     let size: CGFloat
     let action: () -> Void
@@ -723,16 +719,16 @@ struct GlassMorphismButton: View {
             .fill(.ultraThinMaterial)
             .overlay(
                 Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
+                    .stroke(appTheme.textColor.opacity(0.3), lineWidth: 1.5)
             )
-            .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 6)
+            .shadow(color: appTheme.shadowColor.opacity(0.15), radius: 12, x: 0, y: 6)
     }
     
     private var iconView: some View {
         Image(systemName: systemIcon)
             .font(FontManager.fontWithSystemFallback(weight: .semibold, size: iconSize))
-            .foregroundColor(.white.opacity(0.9))
-            .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+            .foregroundColor(appTheme.textColor.opacity(0.9))
+            .shadow(color: appTheme.shadowColor.opacity(0.3), radius: 1, x: 0, y: 1)
     }
     
     private var iconSize: CGFloat {
@@ -773,6 +769,7 @@ struct AccessibleExpandedPlayer<Content: View>: View {
 // MARK: - Simplified Glass Button
 
 struct GlassButton: View {
+    @Environment(\.appTheme) var appTheme
     let text: String
     let action: () -> Void
     
@@ -781,10 +778,10 @@ struct GlassButton: View {
             HStack(spacing: 4) {
                 Text(text)
                     .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
-                    .foregroundColor(.white)
+                    .foregroundColor(appTheme.textColor)
                 Image(systemName: "chevron.down")
                     .font(FontManager.fontWithSystemFallback(weight: .medium, size: 12))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(appTheme.textColor.opacity(0.8))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -798,9 +795,9 @@ struct GlassButton: View {
             .fill(.ultraThinMaterial)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    .stroke(appTheme.textColor.opacity(0.2), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .shadow(color: appTheme.shadowColor.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -808,5 +805,5 @@ struct GlassButton: View {
     SlideUpPlayerView()
         .environmentObject(AudioPlayerService())
         .environmentObject(AccessibilityManager())
-        .background(Color.black)
+        .background(AppTheme(isDark: true).backgroundColor)
 }

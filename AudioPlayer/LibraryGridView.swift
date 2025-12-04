@@ -104,15 +104,33 @@ struct LibraryGridView: View {
                     sortByMenu
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        isShowingDocumentPicker = true
-                    }) {
-                        Image(systemName: "plus.circle")
+                    HStack(spacing: 16) {
+                        // Theme toggle button
+                        Button(action: {
+                            // Toggle between dark and light
+                            if themeManager.isDarkMode {
+                                themeManager.setThemePreference(.light)
+                            } else {
+                                themeManager.setThemePreference(.dark)
+                            }
+                        }) {
+                            Image(systemName: getThemeIcon())
+                        }
+                        .accessibilityLabel("Toggle theme")
+                        .accessibilityHint("Switches between dark and light themes")
+                        .accessibilityValue(themeManager.isDarkMode ? "Dark mode" : "Light mode")
+                        
+                        // Plus button
+                        Button(action: {
+                            isShowingDocumentPicker = true
+                        }) {
+                            Image(systemName: "plus.circle")
+                        }
+                        .accessibilityLabel("Add audio files")
+                        .accessibilityHint("Opens file picker to import audio files or folders")
                     }
-                    .accessibilityLabel("Add audio files")
-                    .accessibilityHint("Opens file picker to import audio files or folders")
                 }
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         navigateToSettings()
                     }) {
@@ -633,6 +651,11 @@ struct LibraryGridView: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+    
+    private func getThemeIcon() -> String {
+        // Show moon for dark mode, sun for light mode
+        return themeManager.isDarkMode ? "moon" : "sun.max"
     }
     
     // MARK: - Content Management Methods

@@ -50,44 +50,19 @@ struct SettingsView: View {
                         get: { themeManager.themePreference },
                         set: { themeManager.setThemePreference($0) }
                     )) {
-                        ForEach(ThemeManager.ThemePreference.allCases, id: \.self) { preference in
+                        ForEach([ThemeManager.ThemePreference.dark, .light], id: \.self) { preference in
                             Text(preference.displayName)
                                 .tag(preference)
                         }
                     }
                     .pickerStyle(.navigationLink)
                     .accessibilityLabel("Theme")
-                    .accessibilityValue(themeManager.themePreference.displayName)
-                    .accessibilityHint("Choose between dark, light, or system theme")
+                    .accessibilityValue(themeManager.isDarkMode ? "Dark mode" : "Light mode")
+                    .accessibilityHint("Choose between dark or light theme")
                 }
                 
                 // Language Section
-                Section {
-                    Picker(localizationManager.localizedString("settings.language"), selection: $settingsManager.selectedLanguage) {
-                        ForEach(SettingsManager.Language.allCases, id: \.self) { language in
-                            HStack {
-                                Text(language.flagEmoji)
-                                        .font(.title2)
-                                        .dynamicTypeSupport(.body, maxSize: .accessibility2)
-                                
-                                Text(language.displayName)
-                                    .dynamicTypeSupport(.body, maxSize: .accessibility2)
-                                
-                                Spacer()
-                                
-                                Text(language.rawValue.uppercased())
-                                    .dynamicTypeSupport(.caption, maxSize: .accessibility1)
-                                    .foregroundColor(.secondary)
-                                    .visualAccessibility(foreground: .secondary)
-                            }
-                            .tag(language)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    .accessibilityLabel(localizationManager.localizedString("settings.language.label"))
-                    .accessibilityValue(localizationManager.localizedString("language.currently.set", settingsManager.selectedLanguage.displayName))
-                    .accessibilityHint(localizationManager.localizedString("settings.language.hint"))
-                }
+                languageSection
                 
                 
               
@@ -115,15 +90,61 @@ struct SettingsView: View {
             }
         }
     }
+    
+    // MARK: - Language Section
+    private var languageSection: some View {
+        Section {
+            Picker(
+                localizationManager.localizedString("settings.language"),
+                selection: $settingsManager.selectedLanguage
+            ) {
+                ForEach(SettingsManager.Language.allCases, id: \.self) { language in
+                    languageRow(for: language)
+                        .tag(language)
+                }
+            }
+            .pickerStyle(.navigationLink)
+            .accessibilityLabel(localizationManager.localizedString("settings.language.label"))
+            .accessibilityValue(localizationManager.localizedString("language.currently.set", settingsManager.selectedLanguage.displayName))
+            .accessibilityHint(localizationManager.localizedString("settings.language.hint"))
+        }
+    }
+    
+    // MARK: - Language Row Helper
+    @ViewBuilder
+    private func languageRow(for language: SettingsManager.Language) -> some View {
+        HStack {
+            Text(language.flagEmoji)
+                .font(.title2)
+                .dynamicTypeSupport(.body, maxSize: .accessibility2)
+            
+            Text(language.displayName)
+                .dynamicTypeSupport(.body, maxSize: .accessibility2)
+            
+            Spacer()
+            
+            Text(language.rawValue.uppercased())
+                .dynamicTypeSupport(.caption, maxSize: .accessibility1)
+                .foregroundColor(.secondary)
+                .visualAccessibility(foreground: .secondary)
+        }
+        .id(language.rawValue)
+    }
 }
 
 #Preview {
-    SettingsView()
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .environmentObject(SettingsManager())
-        .environmentObject(AudioFileManager())
-        .environmentObject(AudioPlayerService())
+    let context = PersistenceController.preview.container.viewContext
+    let settingsManager = SettingsManager()
+    let audioFileManager = AudioFileManager()
+    let audioPlayerService = AudioPlayerService()
+    let themeManager = ThemeManager()
+    
+    return SettingsView()
+        .environment(\.managedObjectContext, context)
+        .environmentObject(settingsManager)
+        .environmentObject(audioFileManager)
+        .environmentObject(audioPlayerService)
         .environmentObject(AccessibilityManager())
-        .environmentObject(ThemeManager())
+        .environmentObject(themeManager)
         .environmentObject(LocalizationManager.shared)
 }

@@ -70,6 +70,9 @@ class SettingsManager: ObservableObject {
     
     @Published var selectedLanguage: Language {
         didSet {
+            // Prevent redundant updates when value hasn't actually changed
+            guard oldValue != selectedLanguage else { return }
+            
             UserDefaults.standard.set(selectedLanguage.rawValue, forKey: "selectedLanguage")
             // Update LocalizationManager with the new language
             LocalizationManager.shared.setLanguage(selectedLanguage.rawValue)
