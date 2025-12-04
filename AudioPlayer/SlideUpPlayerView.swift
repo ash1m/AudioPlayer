@@ -139,13 +139,13 @@ struct SlideUpPlayerView: View {
             Image(systemName: "chevron.up")
                 .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
                 .foregroundColor(appTheme.textColor.opacity(0.5))
-                .frame(height: 44)
+                .frame(height: 32)
                 .accessibilityHidden(true)
             
-            HStack(spacing: 0) {
+            HStack(spacing: 16) {
                 // Progress bar (takes most space)
                 progressBarMinimized
-                    .frame(height: 44)
+                    .frame(height: 40)
                     .animation(.linear(duration: 0.3), value: progressWidthMinimized)
                     .accessibilityHidden(true)
                 
@@ -156,7 +156,6 @@ struct SlideUpPlayerView: View {
                     .id(audioPlayerService.isPlaying) // Force recreation when isPlaying changes
             }
             .padding(.horizontal, 16)
-            .padding(.top, 16)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)

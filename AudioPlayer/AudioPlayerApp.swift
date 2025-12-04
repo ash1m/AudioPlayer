@@ -37,8 +37,7 @@ private struct RootView: View {
     @ObservedObject var themeManager: ThemeManager
     
     var body: some View {
-        print("🎨 [RootView] body computed with isDarkMode: \(themeManager.isDarkMode)")
-        return ContentView()
+        ContentView()
             .environmentObject(audioPlayerService)
             .environmentObject(audioFileManager)
             .environmentObject(accessibilityManager)
