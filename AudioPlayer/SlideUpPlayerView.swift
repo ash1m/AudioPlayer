@@ -57,6 +57,8 @@ struct SlideUpPlayerView: View {
                             }
                         }
                     )
+                    .scaleEffect(calculatePlayerContentScale())
+                    .opacity(calculatePlayerContentOpacity())
                     .gesture(dragGesture)
             }
             .onAppear {
@@ -204,8 +206,6 @@ struct SlideUpPlayerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .scaleEffect(calculateExpandedPlayerScale())
-            .opacity(calculateExpandedPlayerOpacity())
         }
         onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -633,12 +633,11 @@ struct SlideUpPlayerView: View {
     
     // MARK: - Drag Animation Calculations
     
-    private func calculateExpandedPlayerScale() -> CGFloat {
+    private func calculatePlayerContentScale() -> CGFloat {
         // Only apply scale when dragging down (dragOffset > 0) and expanded
         guard playerState == .expanded else { return 1.0 }
         
         // Scale from 1.0 down to 0.85 as drag increases
-        // At 100pt drag, start scaling down
         let dragThreshold: CGFloat = 0
         let maxDragForScale: CGFloat = 150
         
@@ -650,12 +649,11 @@ struct SlideUpPlayerView: View {
         return max(0.85, min(1.0, scaleFactor))
     }
     
-    private func calculateExpandedPlayerOpacity() -> Double {
+    private func calculatePlayerContentOpacity() -> Double {
         // Only apply opacity change when dragging down and expanded
         guard playerState == .expanded else { return 1.0 }
         
         // Fade opacity as drag increases
-        // At 100pt drag, start fading
         let dragThreshold: CGFloat = 0
         let maxDragForOpacity: CGFloat = 200
         

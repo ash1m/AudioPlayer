@@ -42,28 +42,10 @@ struct SettingsView: View {
                     .padding(8)
                 }
                 .listRowBackground(Color.clear)
-                
-                
-                // Theme Section
-                Section {
-                    Picker("Theme", selection: Binding(
-                        get: { themeManager.themePreference },
-                        set: { themeManager.setThemePreference($0) }
-                    )) {
-                        ForEach([ThemeManager.ThemePreference.dark, .light], id: \.self) { preference in
-                            Text(preference.displayName)
-                                .tag(preference)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    .accessibilityLabel("Theme")
-                    .accessibilityValue(themeManager.isDarkMode ? "Dark mode" : "Light mode")
-                    .accessibilityHint("Choose between dark or light theme")
-                }
+
                 
                 // Language Section
                 languageSection
-                
                 
               
                 // App Info Section
