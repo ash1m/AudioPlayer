@@ -153,9 +153,10 @@ struct SlideUpPlayerView: View {
                 playPauseButtonMinimized
                     .frame(width: 64, height: 64)
                     .accessibilityHidden(true)
+                    .id(audioPlayerService.isPlaying) // Force recreation when isPlaying changes
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 17)
+            .padding(.bottom, 20)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
