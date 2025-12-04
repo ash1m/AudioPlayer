@@ -118,6 +118,25 @@ enum LocalImagePhase {
     case failure(Error)
 }
 
+// Image cache for LocalAsyncImageWithPhase to prevent repeated disk reads
+fileprivate class ImageCache {
+    static let shared = ImageCache()
+    private var cache: [String: UIImage] = [:]
+    private let queue = DispatchQueue(label: "com.audioplayer.imagecache", attributes: .concurrent)
+    
+    func image(for url: URL) -> UIImage? {
+        queue.sync {
+            cache[url.absoluteString]
+        }
+    }
+    
+    func setImage(_ image: UIImage, for url: URL) {
+        queue.async(flags: .barrier) {
+            self.cache[url.absoluteString] = image
+        }
+    }
+}
+
 struct LocalAsyncImageWithPhase: View {
     let url: URL?
     let content: (LocalImagePhase) -> AnyView
@@ -125,14 +144,20 @@ struct LocalAsyncImageWithPhase: View {
     @State private var image: UIImage?
     @State private var isLoading: Bool = false
     @State private var error: Error?
+    @State private var hasAttemptedLoad: Bool = false
     
     var body: some View {
         content(currentPhase)
             .onAppear {
                 print("🎨 [LocalAsyncImageWithPhase] onAppear - URL: \(url?.lastPathComponent ?? "nil")")
-                // Always reset so a previous failure doesn't persist across different files
-                resetState()
-                loadImage()
+                // Only load if we haven't already attempted for this URL
+                if !hasAttemptedLoad {
+                    hasAttemptedLoad = true
+                    loadImage()
+                } else if let cachedImage = url.flatMap({ ImageCache.shared.image(for: $0) }) {
+                    // Use cached image if available
+                    image = cachedImage
+                }
             }
             .onChange(of: url) { oldValue, newValue in
                 // Reload image whenever URL changes. Always reset state even if the path is the same,
@@ -140,6 +165,7 @@ struct LocalAsyncImageWithPhase: View {
                 print("🎨 [LocalAsyncImageWithPhase] onChange triggered")
                 print("   oldValue: \(oldValue?.lastPathComponent ?? "nil")")
                 print("   newValue: \(newValue?.lastPathComponent ?? "nil")")
+                hasAttemptedLoad = true
                 resetState()
                 loadImage()
             }
@@ -183,6 +209,8 @@ struct LocalAsyncImageWithPhase: View {
                 await MainActor.run {
                     if let uiImage = uiImage {
                         self.image = uiImage
+                        // Cache the image for future use
+                        ImageCache.shared.setImage(uiImage, for: url)
                         print("🎨 Successfully loaded local image: \(url.lastPathComponent)")
                     } else {
                         self.error = LocalImageError.invalidImageData

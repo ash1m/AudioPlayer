@@ -142,7 +142,7 @@ struct SlideUpPlayerView: View {
                 .frame(height: 44)
                 .accessibilityHidden(true)
             
-            HStack(spacing: 12) {
+            HStack(spacing: 0) {
                 // Progress bar (takes most space)
                 progressBarMinimized
                     .frame(height: 44)
@@ -156,8 +156,7 @@ struct SlideUpPlayerView: View {
                     .id(audioPlayerService.isPlaying) // Force recreation when isPlaying changes
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 16)
-            .background(Color.gray)
+            .padding(.top, 16)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
