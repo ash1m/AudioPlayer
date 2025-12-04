@@ -377,8 +377,19 @@ class AudioPlayerService: NSObject, ObservableObject {
             return .success
         }
         
+        // CRITICAL: Add togglePlayPauseCommand for lock screen tap support
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            print("🔍 Lock screen toggle play/pause received")
+            DispatchQueue.main.async {
+                self?.togglePlayback()
+            }
+            return .success
+        }
+        
         print("✅ All remote transport controls configured")
         print("✅ Control Center and Lock Screen controls should now be available")
+        print("✅ Added togglePlayPauseCommand for lock screen media widget")
         
         // Don't set initial Now Playing info here - let it be set when audio actually loads
         // This prevents conflicts with actual playback information
@@ -418,8 +429,15 @@ class AudioPlayerService: NSObject, ObservableObject {
         print("📱 updateNowPlayingInfo() called - Playing: \(isPlaying)")
         
         guard let audioFile = currentAudioFile else {
-            print("⚠️ No current audio file, clearing Now Playing info")
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            print("⚠️ No current audio file")
+            // CRITICAL: Don't clear Now Playing info while actively playing from Control Center
+            // Only clear if we're not playing
+            if !isPlaying {
+                print("🔍 Not playing, clearing Now Playing info")
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            } else {
+                print("🔍 Still playing but no currentAudioFile - keeping existing Now Playing info")
+            }
             return
         }
         
@@ -1170,8 +1188,14 @@ class AudioPlayerService: NSObject, ObservableObject {
         player = nil
         playerItem = nil
         
-        // Clear Now Playing info
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        // Clear Now Playing info ONLY if not playing
+        // This prevents Control Center from disappearing during playback
+        if !isPlaying {
+            print("🔍 clearCurrentFile: Clearing Now Playing info (not playing)")
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        } else {
+            print("🔍 clearCurrentFile: Keeping Now Playing info (still playing)")
+        }
         
         // Stop playlist playback if active
         if isPlayingFromPlaylist {
