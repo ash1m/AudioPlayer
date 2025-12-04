@@ -9,6 +9,7 @@ import Foundation
 import CoreData
 import AVFoundation
 import Combine
+import UIKit
 
 class AudioFileManager: ObservableObject {
     
@@ -958,6 +959,16 @@ class AudioFileManager: ObservableObject {
                 let audioTitle = audioFile.title ?? "Unknown"
                 print("✅ Successfully saved custom artwork for: \(audioTitle)")
                 
+                // Extract dominant color from new artwork
+                if let artworkURL = audioFile.artworkURL {
+                    Task {
+                        let dominantColor = await DominantColorExtractor.shared.extractMostUsedColor(from: artworkURL)
+                        await MainActor.run {
+                            // Color extracted - it's already applied by the UI observing artworkDidUpdate
+                        }
+                    }
+                }
+                
                 // Notify AudioPlayerService if this is the currently playing file
                 audioPlayerService?.artworkDidUpdate(for: audioFile)
                 
@@ -1036,6 +1047,16 @@ class AudioFileManager: ObservableObject {
                 try context.save()
                 let folderDisplayName = folder.name ?? "Folder"
                 print("✅ Successfully saved custom artwork for folder: \(folderDisplayName)")
+                
+                // Extract dominant color from new folder artwork
+                if let artworkURL = folder.artworkURL {
+                    Task {
+                        let dominantColor = await DominantColorExtractor.shared.extractMostUsedColor(from: artworkURL)
+                        await MainActor.run {
+                            // Color extracted - it's already applied by the UI observing artworkDidUpdate
+                        }
+                    }
+                }
                 
                 // Notify AudioPlayerService if we're playing from this folder
                 if let currentFile = audioPlayerService?.currentAudioFile,

@@ -12,6 +12,7 @@ import CoreData
 struct DocumentPicker: UIViewControllerRepresentable {
     let allowedContentTypes: [UTType]
     let onDocumentsSelected: ([URL]) -> Void
+    @Environment(\.dismiss) var dismiss
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         // Allow both files and folders to be selected
@@ -41,6 +42,11 @@ struct DocumentPicker: UIViewControllerRepresentable {
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             parent.onDocumentsSelected(urls)
+            parent.dismiss()
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            parent.dismiss()
         }
     }
 }

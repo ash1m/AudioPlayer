@@ -101,32 +101,40 @@ struct AudiobookListCard: View {
     .onTapGesture(perform: onTap)
     .contextMenu {
         // Playback actions
-        Button(action: {
-            onMarkAsPlayed?(audioFile)
-        }) {
-            Label("Mark as Played", systemImage: "checkmark.circle")
+        if onMarkAsPlayed != nil {
+            Button(action: {
+                onMarkAsPlayed?(audioFile)
+            }) {
+                Label("Mark as Played", systemImage: "checkmark.circle")
+            }
+            .accessibilityLabel("Mark as played")
+            .accessibilityHint("Sets playback progress to complete")
         }
-        .accessibilityLabel("Mark as played")
-        .accessibilityHint("Sets playback progress to complete")
         
-        Button(action: {
-            onResetProgress?(audioFile)
-        }) {
-            Label("Reset Progress", systemImage: "arrow.counterclockwise")
+        if onResetProgress != nil {
+            Button(action: {
+                onResetProgress?(audioFile)
+            }) {
+                Label("Reset Progress", systemImage: "arrow.counterclockwise")
+            }
+            .accessibilityLabel("Reset progress")
+            .accessibilityHint("Resets playback to the beginning")
         }
-        .accessibilityLabel("Reset progress")
-        .accessibilityHint("Resets playback to the beginning")
         
-        Divider()
+        if onMarkAsPlayed != nil || onResetProgress != nil {
+            Divider()
+        }
         
         // Custom artwork actions
-        Button(action: {
-            onSetCustomArtwork?(audioFile)
-        }) {
-            Label("Set Custom Artwork", systemImage: "photo")
+        if onSetCustomArtwork != nil {
+            Button(action: {
+                onSetCustomArtwork?(audioFile)
+            }) {
+                Label("Set Custom Artwork", systemImage: "photo")
+            }
+            .accessibilityLabel("Set custom artwork")
+            .accessibilityHint("Choose a custom image as album artwork")
         }
-        .accessibilityLabel("Set custom artwork")
-        .accessibilityHint("Choose a custom image as album artwork")
         
         if onRemoveCustomArtwork != nil {
             Button(action: {
@@ -138,18 +146,22 @@ struct AudiobookListCard: View {
             .accessibilityHint("Remove the custom artwork and revert to original")
         }
         
-        Divider()
+        if onSetCustomArtwork != nil || onRemoveCustomArtwork != nil {
+            Divider()
+        }
         
         // Sharing action
-        Button(action: {
-            onShare?(audioFile)
-        }) {
-            Label("Share", systemImage: "square.and.arrow.up")
+        if onShare != nil {
+            Button(action: {
+                onShare?(audioFile)
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .accessibilityLabel("Share audio file")
+            .accessibilityHint("Opens share sheet to send this file to other apps")
+            
+            Divider()
         }
-        .accessibilityLabel("Share audio file")
-        .accessibilityHint("Opens share sheet to send this file to other apps")
-        
-        Divider()
         
         // Destructive action
         Button(role: .destructive, action: { onDelete(audioFile) }) {
@@ -177,7 +189,7 @@ struct AudiobookListCard: View {
         }
         .task {
             if let artworkURL = audioFile.artworkURL {
-                let color = await DominantColorExtractor.shared.extractDominantColor(from: artworkURL)
+                let color = await DominantColorExtractor.shared.extractMostUsedColor(from: artworkURL)
                 await MainActor.run {
                     dominantColor = color
                 }

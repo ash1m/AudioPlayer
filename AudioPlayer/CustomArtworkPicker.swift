@@ -15,11 +15,13 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     let onImageSelected: (UIImage) -> Void
     let onError: (String) -> Void
+    @Environment(\.dismiss) var dismiss
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
         config.filter = .images
         config.selectionLimit = 1
+        config.preferredAssetRepresentationMode = .current
         
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
@@ -40,7 +42,12 @@ struct CustomArtworkPicker: UIViewControllerRepresentable {
         }
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            parent.isPresented = false
+            defer {
+                DispatchQueue.main.async {
+                    self.parent.isPresented = false
+                    self.parent.dismiss()
+                }
+            }
             
             guard let result = results.first else {
                 print("❌ No image selected")
