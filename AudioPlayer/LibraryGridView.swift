@@ -94,126 +94,119 @@ struct LibraryGridView: View {
     
     var body: some View {
         NavigationStack {
+            
             VStack(spacing: 0) {
-                breadcrumbView
+                //breadcrumbView
                 contentView
             }
-            //.navigationBarTitleDisplayMode(.inline)
+            
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading)
+                {
                     sortByMenu
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 16) {
+                
+                ToolbarItem(placement: .navigationBarTrailing)
+                {
+                    HStack(spacing: 16)
+                    {
                         // Theme toggle button
                         Button(action: {
-                            // Toggle between dark and light
-                            if themeManager.isDarkMode {
-                                themeManager.setThemePreference(.light)
-                            } else {
-                                themeManager.setThemePreference(.dark)
-                            }
-                        }) {
-                            Image(systemName: getThemeIcon())
-                        }
-                        .accessibilityLabel("Toggle theme")
-                        .accessibilityHint("Switches between dark and light themes")
-                        .accessibilityValue(themeManager.isDarkMode ? "Dark mode" : "Light mode")
+                            if themeManager.isDarkMode
+                            { themeManager.setThemePreference(.light) }
+                            else
+                            { themeManager.setThemePreference(.dark) }
+                        })
+                        { Image(systemName: getThemeIcon()) }
+                            .accessibilityLabel("Toggle theme")
+                            .accessibilityHint("Switches between dark and light themes")
+                            .accessibilityValue(themeManager.isDarkMode ? "Dark mode" : "Light mode")
                         
                         // Plus button
-                        Button(action: {
-                            isShowingDocumentPicker = true
-                        }) {
-                            Image(systemName: "plus.circle")
+                        Button(action: { isShowingDocumentPicker = true })
+                        { Image(systemName: "plus.circle") }
+                            .accessibilityLabel("Add audio files")
+                            .accessibilityHint("Opens file picker to import audio files or folders")
+                        
+                        // Settings button
+                        Button(action: { navigateToSettings() })
+                        { Image(systemName: "gearshape") }
+                            .accessibilityLabel("Settings")
+                            .accessibilityHint("Opens app settings and preferences")
+                    }
+                }
+            }
+                .accessibilityLabel(libraryAccessibilityLabel)
+                .dynamicContentFocus(
+                    description: folderNavigationManager.currentLocationDescription,
+                    hasContent: !folders.isEmpty || !audioFiles.isEmpty,
+                    emptyMessage: folderNavigationManager.isInFolder ? "No content in this folder" : "No audio files in library"
+                )
+                .onAppear {
+                    loadCurrentContent()
+                }
+                .onChange(of: folderNavigationManager.currentFolder) { _, _ in
+                    loadCurrentContent()
+                }
+                .onChange(of: refreshTrigger) { _, _ in
+                    loadCurrentContent()
+                }
+                .sheet(isPresented: $isShowingDocumentPicker) {
+                    DocumentPicker(
+                        allowedContentTypes: [
+                            .mp3,
+                            .mpeg4Audio,
+                            .wav,
+                            .audio
+                        ],
+                        onDocumentsSelected: importAudioFiles
+                    )
+                }
+                .sheet(isPresented: $showingFileArtworkPicker) {
+                    if let selectedAudioFile = selectedAudioFileForArtwork {
+                        CustomArtworkPicker(
+                            isPresented: $showingFileArtworkPicker,
+                            onImageSelected: { image in
+                                handleCustomArtwork(for: selectedAudioFile, image: image)
+                            },
+                            onError: { error in
+                                artworkErrorMessage = error
+                                isShowingAlert = true
+                                alertMessage = artworkErrorMessage
+                            }
+                        )
+                    }
+                }
+                .sheet(isPresented: $showingFolderArtworkPicker) {
+                    if let selectedFolder = selectedFolderForArtwork {
+                        CustomArtworkPicker(
+                            isPresented: $showingFolderArtworkPicker,
+                            onImageSelected: { image in
+                                handleCustomArtwork(for: selectedFolder, image: image)
+                            },
+                            onError: { error in
+                                artworkErrorMessage = error
+                                isShowingAlert = true
+                                alertMessage = artworkErrorMessage
+                            }
+                        )
+                    }
+                }
+                .alert(localizationManager.importResultsTitle, isPresented: $isShowingAlert) {
+                    Button(localizationManager.importButtonOK) { }
+                    if importResults.contains(where: { !$0.success }) {
+                        Button(localizationManager.importButtonViewDetails) {
+                            isShowingDetailedResults = true
                         }
-                        .accessibilityLabel("Add audio files")
-                        .accessibilityHint("Opens file picker to import audio files or folders")
                     }
+                } message: {
+                    Text(alertMessage)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        navigateToSettings()
-                    }) {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel("Settings")
-                    .accessibilityHint("Opens app settings and preferences")
+                .sheet(isPresented: $isShowingDetailedResults) {
+                    ImportResultsDetailView(results: importResults)
                 }
             }
-            //.toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-            //.toolbarBackgroundVisibility(.automatic, for: .navigationBar)
-        }
-        .accessibilityLabel(libraryAccessibilityLabel)
-        .dynamicContentFocus(
-            description: folderNavigationManager.currentLocationDescription,
-            hasContent: !folders.isEmpty || !audioFiles.isEmpty,
-            emptyMessage: folderNavigationManager.isInFolder ? "No content in this folder" : "No audio files in library"
-        )
-        .onAppear {
-            loadCurrentContent()
-        }
-        .onChange(of: folderNavigationManager.currentFolder) { _, _ in
-            loadCurrentContent()
-        }
-        .onChange(of: refreshTrigger) { _, _ in
-            loadCurrentContent()
-        }
-        .sheet(isPresented: $isShowingDocumentPicker) {
-            DocumentPicker(
-                allowedContentTypes: [
-                    .mp3,
-                    .mpeg4Audio,
-                    .wav,
-                    .audio
-                ],
-                onDocumentsSelected: importAudioFiles
-            )
-        }
-        .sheet(isPresented: $showingFileArtworkPicker) {
-            if let selectedAudioFile = selectedAudioFileForArtwork {
-                CustomArtworkPicker(
-                    isPresented: $showingFileArtworkPicker,
-                    onImageSelected: { image in
-                        handleCustomArtwork(for: selectedAudioFile, image: image)
-                    },
-                    onError: { error in
-                        artworkErrorMessage = error
-                        isShowingAlert = true
-                        alertMessage = artworkErrorMessage
-                    }
-                )
-            }
-        }
-        .sheet(isPresented: $showingFolderArtworkPicker) {
-            if let selectedFolder = selectedFolderForArtwork {
-                CustomArtworkPicker(
-                    isPresented: $showingFolderArtworkPicker,
-                    onImageSelected: { image in
-                        handleCustomArtwork(for: selectedFolder, image: image)
-                    },
-                    onError: { error in
-                        artworkErrorMessage = error
-                        isShowingAlert = true
-                        alertMessage = artworkErrorMessage
-                    }
-                )
-            }
-        }
-        .alert(localizationManager.importResultsTitle, isPresented: $isShowingAlert) {
-            Button(localizationManager.importButtonOK) { }
-            if importResults.contains(where: { !$0.success }) {
-                Button(localizationManager.importButtonViewDetails) {
-                    isShowingDetailedResults = true
-                }
-            }
-        } message: {
-            Text(alertMessage)
-        }
-        .sheet(isPresented: $isShowingDetailedResults) {
-            ImportResultsDetailView(results: importResults)
-        }
     }
-    
     private func handleAudioFileSelection(_ audioFile: AudioFile) {
         // Check if this is the currently playing file
         if audioPlayerService.currentAudioFile == audioFile {
@@ -473,7 +466,7 @@ struct LibraryGridView: View {
     // MARK: - UI Components
     
     
-    @ViewBuilder
+ /*   @ViewBuilder
     private var breadcrumbView: some View {
         if folderNavigationManager.canNavigateBack {
             BreadcrumbNavigation(folderNavigationManager: folderNavigationManager)
@@ -481,7 +474,7 @@ struct LibraryGridView: View {
                 .padding(.bottom, 8)
         }
     }
-    
+   */
     @ViewBuilder
     private var contentView: some View {
         if folders.isEmpty && audioFiles.isEmpty {
@@ -492,7 +485,7 @@ struct LibraryGridView: View {
     }
     
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Image("AppIconImage")
                 .resizable()
                 .scaledToFit()

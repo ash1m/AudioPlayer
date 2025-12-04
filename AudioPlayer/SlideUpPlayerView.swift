@@ -34,7 +34,7 @@ struct SlideUpPlayerView: View {
     @State private var cachedTimelineValue = ""
     @State private var lastUIUpdateTime: CFTimeInterval = 0
     
-    private let minimizedHeight: CGFloat = 102
+    private let minimizedHeight: CGFloat = 120
     
     var body: some View {
         GeometryReader { geometry in
@@ -48,12 +48,12 @@ struct SlideUpPlayerView: View {
                         Group {
                             if playerState == .expanded {
                                 RoundedRectangle(cornerRadius: 25)
-                                    .fill(appTheme.backgroundColor)
-                                    .shadow(color: appTheme.shadowColor, radius: 15, x: 0, y: -2)
+                                    .fill(.thinMaterial)
+                                    .shadow(color: appTheme.shadowColor, radius: 50, x: 0, y: -5)
                             } else {
                                 RoundedRectangle(cornerRadius: 25)
-                                    .fill(.regularMaterial)
-                                    .shadow(color: appTheme.shadowColor, radius: 15, x: 0, y: -2)
+                                    .fill(.thinMaterial)
+                                    .shadow(color: appTheme.shadowColor, radius: 50, x: 0, y: -5)
                             }
                         }
                     )
@@ -155,9 +155,9 @@ struct SlideUpPlayerView: View {
                     .accessibilityHidden(true)
                     .id(audioPlayerService.isPlaying) // Force recreation when isPlaying changes
             }
+            .padding(.bottom, 24)
             .padding(.horizontal, 16)
         }
-        .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(cachedMiniPlayerLabel.isEmpty ? miniPlayerAccessibilityLabel : cachedMiniPlayerLabel)
@@ -204,7 +204,8 @@ struct SlideUpPlayerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(appTheme.backgroundColor)
+            .scaleEffect(calculateExpandedPlayerScale())
+            .opacity(calculateExpandedPlayerOpacity())
         }
         onEscape: {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -628,6 +629,42 @@ struct SlideUpPlayerView: View {
         case .expanded:
             return geometry.size.height
         }
+    }
+    
+    // MARK: - Drag Animation Calculations
+    
+    private func calculateExpandedPlayerScale() -> CGFloat {
+        // Only apply scale when dragging down (dragOffset > 0) and expanded
+        guard playerState == .expanded else { return 1.0 }
+        
+        // Scale from 1.0 down to 0.85 as drag increases
+        // At 100pt drag, start scaling down
+        let dragThreshold: CGFloat = 0
+        let maxDragForScale: CGFloat = 150
+        
+        if dragOffset <= dragThreshold {
+            return 1.0
+        }
+        
+        let scaleFactor = 1.0 - ((dragOffset / maxDragForScale) * 0.15)
+        return max(0.85, min(1.0, scaleFactor))
+    }
+    
+    private func calculateExpandedPlayerOpacity() -> Double {
+        // Only apply opacity change when dragging down and expanded
+        guard playerState == .expanded else { return 1.0 }
+        
+        // Fade opacity as drag increases
+        // At 100pt drag, start fading
+        let dragThreshold: CGFloat = 0
+        let maxDragForOpacity: CGFloat = 200
+        
+        if dragOffset <= dragThreshold {
+            return 1.0
+        }
+        
+        let opacityFactor = 1.0 - ((dragOffset / maxDragForOpacity) * 0.3)
+        return max(0.7, min(1.0, opacityFactor))
     }
     
     // MARK: - Gestures

@@ -215,15 +215,10 @@ class AudioPlayerService: NSObject, ObservableObject {
             
             print("🔧 Setting up audio session for media controls...")
             
-            // CRITICAL: Use specific options required for Control Center
-            let sessionOptions: AVAudioSession.CategoryOptions = [
-                .allowBluetoothA2DP,
-                .allowAirPlay,
-                .defaultToSpeaker,
-                .mixWithOthers
-            ]
+            // Use only .mixWithOthers which works on your device
+            // This allows your audio to mix with other system audio (music, calls, etc.)
+            let sessionOptions: AVAudioSession.CategoryOptions = [.mixWithOthers]
             
-            // Use .default mode instead of .spokenAudio for better Control Center integration
             try audioSession.setCategory(.playback, mode: .default, options: sessionOptions)
             print("✅ Audio session category set to .playback with Control Center options")
             
