@@ -64,24 +64,33 @@ class ThemeManager: ObservableObject {
     
     private func updateThemeMode() {
         print("🎨 [ThemeManager] updateThemeMode called, preference: \(themePreference.rawValue)")
+        let newDarkMode: Bool
+        
         switch themePreference {
         case .system:
             // Get the system appearance
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 let isDarkSystemAppearance = windowScene.windows.first?.traitCollection.userInterfaceStyle == .dark
-                isDarkMode = isDarkSystemAppearance
+                newDarkMode = isDarkSystemAppearance
                 print("🎨 [ThemeManager] System mode - isDarkSystemAppearance: \(isDarkSystemAppearance)")
             } else {
-                isDarkMode = true // Default to dark
+                newDarkMode = true // Default to dark
                 print("🎨 [ThemeManager] System mode - no window scene, defaulting to dark")
             }
         case .dark:
-            isDarkMode = true
+            newDarkMode = true
             print("🎨 [ThemeManager] Dark mode selected")
         case .light:
-            isDarkMode = false
+            newDarkMode = false
             print("🎨 [ThemeManager] Light mode selected")
         }
-        print("🎨 [ThemeManager] isDarkMode is now: \(isDarkMode)")
+        
+        // Only update if the value actually changed to prevent unnecessary redraws
+        if isDarkMode != newDarkMode {
+            isDarkMode = newDarkMode
+            print("🎨 [ThemeManager] isDarkMode changed to: \(isDarkMode)")
+        } else {
+            print("🎨 [ThemeManager] isDarkMode unchanged: \(isDarkMode)")
+        }
     }
 }

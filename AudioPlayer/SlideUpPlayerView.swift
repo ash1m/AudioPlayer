@@ -156,13 +156,14 @@ struct SlideUpPlayerView: View {
                     .id(audioPlayerService.isPlaying) // Force recreation when isPlaying changes
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
+            .background(Color.gray)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(cachedMiniPlayerLabel.isEmpty ? miniPlayerAccessibilityLabel : cachedMiniPlayerLabel)
-        .accessibilityHint("Double-tap to expand player")
+        .accessibilityHint("Tap to expand player")
         .accessibilityValue(cachedMiniPlayerValue.isEmpty ? miniPlayerAccessibilityValue : cachedMiniPlayerValue)
         .onTapGesture {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
