@@ -12,7 +12,7 @@ import CoreData
 import Combine
 import UIKit
 
-class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
+class AudioPlayerService: NSObject, ObservableObject {
     
     // MARK: - Published Properties
     @Published var isPlaying = false
@@ -39,7 +39,6 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
     private var isInBackground = false
     private var lastUpdateTime: CFTimeInterval = 0
     private var lastNowPlayingUpdateTime: Double = 0
-    private let mediaControls = MediaControlsManager.shared
     
     // MARK: - Playlist Queue Properties
     private var currentPlaylist: Playlist?
@@ -58,8 +57,6 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
         super.init()
         setupAudioSession()
         setupNotifications()
-        // Set this service as the delegate for media control commands
-        MediaControlsManager.setDelegate(self)
     }
     
     deinit {
@@ -213,83 +210,305 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
     // MARK: - Audio Session Setup
     
     private func setupAudioSession() {
-        print("🔧 Setting up audio session...")
-        mediaControls.ensureAudioSessionActive()
-        print("✅ Audio session configured via MediaControlsManager")
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            
+            print("🔧 Setting up audio session for media controls...")
+            
+            // CRITICAL: Use specific options required for Control Center
+            let sessionOptions: AVAudioSession.CategoryOptions = [
+                .allowBluetoothA2DP,
+                .allowAirPlay,
+                .defaultToSpeaker,
+                .mixWithOthers
+            ]
+            
+            // Use .default mode instead of .spokenAudio for better Control Center integration
+            try audioSession.setCategory(.playback, mode: .default, options: sessionOptions)
+            print("✅ Audio session category set to .playback with Control Center options")
+            
+            // CRITICAL: Set the audio session active - this is required for Control Center
+            try audioSession.setActive(true, options: [])
+            print("✅ Audio session activated successfully")
+            
+            // Small delay to ensure audio session is fully established
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.setupRemoteTransportControls()
+                print("✅ Audio session and remote controls configured with delay")
+            }
+            
+        } catch let error as NSError {
+            print("❌ Failed to setup audio session: \(error.localizedDescription)")
+            print("   Error domain: \(error.domain), code: \(error.code)")
+            if let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+                print("   Underlying error: \(underlyingError.localizedDescription)")
+            }
+            
+            // Try alternative setup on failure
+            setupFallbackAudioSession()
+        }
+    }
+    
+    private func setupFallbackAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            print("🔧 Attempting fallback audio session setup...")
+            
+            // Minimal configuration that should work
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+            
+            print("✅ Fallback audio session activated")
+            setupRemoteTransportControls()
+            
+        } catch {
+            print("❌ Fallback audio session setup also failed: \(error.localizedDescription)")
+        }
+    }
+    
+    private func setupRemoteTransportControls() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        print("🎵 Setting up remote transport controls...")
+        
+        // Clear existing targets properly by storing references
+        let commands = [
+            commandCenter.playCommand,
+            commandCenter.pauseCommand,
+            commandCenter.skipForwardCommand,
+            commandCenter.skipBackwardCommand,
+            commandCenter.nextTrackCommand,
+            commandCenter.previousTrackCommand,
+            commandCenter.changePlaybackPositionCommand
+        ]
+        
+        // Clear all existing targets
+        commands.forEach { command in
+            command.removeTarget(self)
+            command.isEnabled = false
+        }
+        
+        // Play command
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            print("▶️ Remote play command received")
+            DispatchQueue.main.async {
+                self?.play()
+            }
+            return .success
+        }
+        print("✅ Play command configured")
+        
+        // Pause command
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            print("⏸️ Remote pause command received")
+            DispatchQueue.main.async {
+                self?.pause()
+            }
+            return .success
+        }
+        print("✅ Pause command configured")
+        
+        // Skip forward command (15 seconds)
+        commandCenter.skipForwardCommand.isEnabled = true
+        commandCenter.skipForwardCommand.preferredIntervals = [NSNumber(value: 15)]
+        commandCenter.skipForwardCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.fastForward15()
+            }
+            return .success
+        }
+        
+        // Skip backward command (15 seconds)
+        commandCenter.skipBackwardCommand.isEnabled = true
+        commandCenter.skipBackwardCommand.preferredIntervals = [NSNumber(value: 15)]
+        commandCenter.skipBackwardCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.rewind15()
+            }
+            return .success
+        }
+        
+        // Next track command
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.nextTrackCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                let success = (self?.isPlayingFromPlaylist == true) ?
+                    (self?.playNext() ?? false) :
+                    (self?.playNextInFolder() ?? false)
+                
+                if !success {
+                    // If no next track, just seek to end or restart current
+                    self?.seek(to: self?.duration ?? 0)
+                }
+            }
+            return .success
+        }
+        
+        // Previous track command
+        commandCenter.previousTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                // If we're more than 3 seconds into the track, restart current track
+                if (self?.currentTime ?? 0) > 3.0 {
+                    self?.seek(to: 0)
+                } else {
+                    // Otherwise go to actual previous track
+                    let success = (self?.isPlayingFromPlaylist == true) ?
+                        (self?.playPrevious() ?? false) :
+                        (self?.playPreviousInFolder() ?? false)
+                    
+                    if !success {
+                        // If no previous track, restart current
+                        self?.seek(to: 0)
+                    }
+                }
+            }
+            return .success
+        }
+        
+        // Playback position command (seek bar)
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let event = event as? MPChangePlaybackPositionCommandEvent else {
+                return .commandFailed
+            }
+            
+            DispatchQueue.main.async {
+                self?.seek(to: event.positionTime)
+                self?.updateNowPlayingInfo()
+            }
+            return .success
+        }
+        
+        print("✅ All remote transport controls configured")
+        print("✅ Control Center and Lock Screen controls should now be available")
+        
+        // Don't set initial Now Playing info here - let it be set when audio actually loads
+        // This prevents conflicts with actual playback information
+        print("✅ Remote command center ready for Control Center activation")
     }
     
     // MARK: - Ensure Audio Session Active
     
     private func ensureAudioSessionAndRemoteControlsActive() {
-        mediaControls.ensureAudioSessionActive()
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            
+            print("🔍 Ensuring audio session is active for Control Center...")
+            
+            // Check if audio session is active and reactivate if needed
+            if audioSession.category != .playback || !audioSession.isOtherAudioPlaying {
+                try audioSession.setActive(true, options: [])
+                print("✅ Audio session re-activated for playback")
+            }
+            
+            // Don't re-setup remote controls unnecessarily - they should persist
+            // Just ensure we have proper Now Playing info when we actually start playing
+            print("✅ Audio session ensured active")
+            
+        } catch {
+            print("⚠️ Warning: Could not ensure audio session active: \(error.localizedDescription)")
+            // As a last resort, try full re-setup
+            DispatchQueue.main.async { [weak self] in
+                self?.setupAudioSession()
+            }
+        }
     }
     
     // MARK: - Now Playing Info
     
     private func updateNowPlayingInfo() {
+        print("📱 updateNowPlayingInfo() called - Playing: \(isPlaying)")
+        
         guard let audioFile = currentAudioFile else {
-            if !isPlaying {
-                mediaControls.clearNowPlayingInfo()
-            }
+            print("⚠️ No current audio file, clearing Now Playing info")
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
             return
         }
         
         // Get the most current time from the player if available
         let actualCurrentTime = player?.currentTime().seconds ?? currentTime
         
-        // Determine duration and elapsed time based on playback context
-        let (displayDuration, displayElapsedTime, displayAlbumTitle) = getDisplayInfo(
-            actualCurrentTime: actualCurrentTime
-        )
-        
         let title = audioFile.title ?? (audioFile.fileName ?? "Unknown")
-        let artist = audioFile.artist ?? "Unknown Artist"
+        print("🎵 Setting Now Playing info for: \(title)")
+        print("🔊 Duration: \(duration), Actual Time: \(actualCurrentTime), Playing: \(isPlaying), Rate: \(playbackRate)")
         
-        // Load artwork if available
-        var artwork: UIImage? = nil
+        // Determine duration and elapsed time based on playback context
+        var displayDuration: Double
+        var displayElapsedTime: Double
+        var displayAlbumTitle: String
+        
+        if isPlayingFromFolder, let folder = currentFolder, folderTotalDuration > 0 {
+            // Use folder progress for Control Center - validate values
+            displayDuration = max(folderTotalDuration, 0.1)  // Ensure positive duration
+            displayElapsedTime = max(min(folderCurrentTime, folderTotalDuration), 0.0)  // Clamp within bounds
+            let folderName = folder.name ?? "Folder"
+            displayAlbumTitle = folderName.isEmpty ? "Folder" : folderName
+            print("📁 Using folder progress in Now Playing - \(Int(displayElapsedTime))/\(Int(displayDuration))")
+        } else {
+            // Use individual file progress - validate values
+            displayDuration = max(duration, 0.1)  // Ensure positive duration
+            displayElapsedTime = max(min(actualCurrentTime, displayDuration), 0.0)  // Clamp within bounds
+            displayAlbumTitle = (audioFile.album ?? "").isEmpty ? "AudioPlayer" : (audioFile.album ?? "AudioPlayer")
+        }
+        
+        // Use more standard media type
+        var nowPlayingInfo: [String: Any] = [
+            MPMediaItemPropertyTitle: (title as Any),
+            MPMediaItemPropertyArtist: audioFile.artist ?? "Unknown Artist",
+            MPMediaItemPropertyAlbumTitle: displayAlbumTitle,
+            MPMediaItemPropertyPlaybackDuration: displayDuration,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: displayElapsedTime,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? Double(playbackRate) : 0.0,
+            MPMediaItemPropertyMediaType: MPMediaType.music.rawValue // Changed from audioBook to music
+        ]
+        
+        // Add genre if available
+        if let genre = audioFile.genre, !genre.isEmpty {
+            nowPlayingInfo[MPMediaItemPropertyGenre] = genre
+        }
+        
+        // Add artwork if available
         if let artworkURL = audioFile.artworkURL,
            FileManager.default.fileExists(atPath: artworkURL.path) {
             do {
                 let imageData = try Data(contentsOf: artworkURL)
-                artwork = UIImage(data: imageData)
+                if let image = UIImage(data: imageData) {
+                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                    print("🖼️ Added artwork to Now Playing info")
+                }
             } catch {
                 print("⚠️ Could not load artwork: \(error.localizedDescription)")
             }
         }
         
-        // Update Now Playing info through MediaControlsManager
-        mediaControls.updateNowPlayingInfo(
-            title: title,
-            artist: artist,
-            album: displayAlbumTitle,
-            duration: displayDuration,
-            currentTime: displayElapsedTime,
-            isPlaying: isPlaying,
-            playbackRate: playbackRate,
-            artwork: artwork
-        )
-    }
-    
-    /// Helper method to determine display info based on playback context
-    private func getDisplayInfo(actualCurrentTime: Double) -> (duration: Double, elapsedTime: Double, album: String) {
-        if isPlayingFromFolder, let folder = currentFolder, folderTotalDuration > 0 {
-            // Use folder progress
-            let duration = max(folderTotalDuration, 0.1)
-            let elapsedTime = max(min(folderCurrentTime, folderTotalDuration), 0.0)
-            let folderName = folder.name ?? "Folder"
-            let album = folderName.isEmpty ? "Folder" : folderName
-            return (duration, elapsedTime, album)
-        } else if isPlayingFromPlaylist, let playlist = currentPlaylist {
-            // Use playlist context
-            let duration = max(self.duration, 0.1)
-            let elapsedTime = max(min(actualCurrentTime, duration), 0.0)
-            return (duration, elapsedTime, playlist.name ?? "Playlist")
+        // Add additional context if playing from playlist (folder context already set above)
+        if isPlayingFromPlaylist, let playlist = currentPlaylist {
+            let playlistName = playlist.name ?? "Unknown Playlist"
+            nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = (playlistName as Any)
+            print("🎵 Playing from playlist: \(playlistName)")
+        }
+        
+        // Set the Now Playing info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        
+        // Verify it was set
+        let verifyInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo
+        if verifyInfo != nil {
+            let elapsedTime = verifyInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] as? Double ?? 0.0
+            let duration = verifyInfo?[MPMediaItemPropertyPlaybackDuration] as? Double ?? 0.0
+            let rate = verifyInfo?[MPNowPlayingInfoPropertyPlaybackRate] as? Double ?? 0.0
+            
+            print("✅ Successfully set Now Playing info with \(nowPlayingInfo.count) properties")
+            print("✅ Title: \(verifyInfo?[MPMediaItemPropertyTitle] as? String ?? "nil")")
+            print("✅ Artist: \(verifyInfo?[MPMediaItemPropertyArtist] as? String ?? "nil")")
+            print("✅ Duration: \(duration)s, Elapsed: \(elapsedTime)s, Rate: \(rate)")
+            print("✅ MPNowPlayingInfoCenter configured for Control Center")
         } else {
-            // Use individual file progress
-            let duration = max(self.duration, 0.1)
-            let elapsedTime = max(min(actualCurrentTime, duration), 0.0)
-            let album = (currentAudioFile?.album ?? "").isEmpty ? "AudioPlayer" : (currentAudioFile?.album ?? "AudioPlayer")
-            return (duration, elapsedTime, album)
+            print("❌ Failed to set Now Playing info!")
         }
     }
     
@@ -297,7 +516,7 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
     
     func artworkDidUpdate(for audioFile: AudioFile) {
         // Only update if this is the currently playing file
-        guard let currentFile = currentAudioFile, 
+        guard let currentFile = currentAudioFile,
               currentFile.id == audioFile.id else {
             print("🖼️ Artwork updated for non-current file, not updating Now Playing info")
             return
@@ -364,8 +583,12 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
             player?.seek(to: targetTime)
         }
         
-        // Note: Now Playing info will be updated once duration is available via KVO observer
-        // This ensures duration > 0 before updating Control Center
+        // Set initial Now Playing info when file is loaded (but don't force duplicate info)
+        DispatchQueue.main.async { [weak self] in
+            // Only update Now Playing info once, properly
+            self?.updateNowPlayingInfo()
+            print("📱 Now Playing info set for loaded track")
+        }
         
         let fileName = audioFile.fileName ?? "Unknown"
         print("Successfully loaded audio file: \(fileName)")
@@ -599,11 +822,6 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
                 DispatchQueue.main.async { [weak self] in
                     self?.duration = CMTimeGetSeconds(duration)
                     print("⏱️ Duration loaded: \(CMTimeGetSeconds(duration)) seconds")
-
-                    // CRITICAL: Update Now Playing info now that duration is available
-                    // This ensures Control Center displays the track info correctly
-                    self?.updateNowPlayingInfo()
-                    print("🎵 Updated Now Playing info with duration (Control Center should now display)")
                 }
             }
         } else if keyPath == "status", let playerItem = object as? AVPlayerItem {
@@ -957,11 +1175,8 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
         player = nil
         playerItem = nil
         
-        // Clear Now Playing info ONLY if not playing
-        // This prevents Control Center from disappearing during playback
-        if !isPlaying {
-            mediaControls.clearNowPlayingInfo()
-        }
+        // Clear Now Playing info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         
         // Stop playlist playback if active
         if isPlayingFromPlaylist {
@@ -972,61 +1187,6 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
         if isPlayingFromFolder {
             stopFolderPlayback()
         }
-    }
-}
-
-// MARK: - MediaControlsDelegate Implementation
-
-// Implementation of MediaControlsDelegate protocol methods
-// Note: Protocol is already declared on the class definition
-extension AudioPlayerService {
-    func handlePlayCommand() {
-        play()
-    }
-    
-    func handlePauseCommand() {
-        pause()
-    }
-    
-    func handleTogglePlayPauseCommand() {
-        togglePlayback()
-    }
-    
-    func handleSkipForwardCommand() {
-        fastForward15()
-    }
-    
-    func handleSkipBackwardCommand() {
-        rewind15()
-    }
-    
-    func handleNextTrackCommand() {
-        let success = isPlayingFromPlaylist ? playNext() : playNextInFolder()
-        
-        if success == false {
-            // If no next track, seek to end
-            seek(to: duration)
-        }
-    }
-    
-    func handlePreviousTrackCommand() {
-        // If more than 3 seconds in, restart current track
-        if currentTime > 3.0 {
-            seek(to: 0)
-        } else {
-            // Otherwise go to previous track
-            let success = isPlayingFromPlaylist ? playPrevious() : playPreviousInFolder()
-            
-            if success == false {
-                // If no previous track, restart current
-                seek(to: 0)
-            }
-        }
-    }
-    
-    func handlePlaybackPositionChange(to position: Double) {
-        seek(to: position)
-        updateNowPlayingInfo()
     }
 }
 
