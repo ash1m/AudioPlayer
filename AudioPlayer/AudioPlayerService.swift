@@ -364,12 +364,8 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
             player?.seek(to: targetTime)
         }
         
-        // Set initial Now Playing info when file is loaded (but don't force duplicate info)
-        DispatchQueue.main.async { [weak self] in
-            // Only update Now Playing info once, properly
-            self?.updateNowPlayingInfo()
-            print("📱 Now Playing info set for loaded track")
-        }
+        // Note: Now Playing info will be updated once duration is available via KVO observer
+        // This ensures duration > 0 before updating Control Center
         
         let fileName = audioFile.fileName ?? "Unknown"
         print("Successfully loaded audio file: \(fileName)")
@@ -603,6 +599,11 @@ class AudioPlayerService: NSObject, ObservableObject, MediaControlsDelegate {
                 DispatchQueue.main.async { [weak self] in
                     self?.duration = CMTimeGetSeconds(duration)
                     print("⏱️ Duration loaded: \(CMTimeGetSeconds(duration)) seconds")
+
+                    // CRITICAL: Update Now Playing info now that duration is available
+                    // This ensures Control Center displays the track info correctly
+                    self?.updateNowPlayingInfo()
+                    print("🎵 Updated Now Playing info with duration (Control Center should now display)")
                 }
             }
         } else if keyPath == "status", let playerItem = object as? AVPlayerItem {
