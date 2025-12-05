@@ -39,33 +39,49 @@ class MediaControlsManager {
     /// Initializes and configures all remote commands
     /// Should be called once during app setup
     private func setupRemoteCommands() {
-        guard !isCommandsSetup else { return }
+        guard !isCommandsSetup else { 
+            print("[MediaControls] Remote commands already setup, skipping...")
+            return 
+        }
         
-        print("🎵 [MediaControls] Setting up remote commands...")
+        print("\n🎵 [MediaControls] ========== INITIALIZING MEDIA CONTROLS ==========")
+        print("   Setting up MPRemoteCommandCenter...")
         
         // Disable all commands first
         disableAllCommands()
+        print("   ✅ All previous command targets cleared")
         
         // Configure play command
         setupPlayCommand()
+        print("   ✅ Play command configured")
         
         // Configure pause command
         setupPauseCommand()
+        print("   ✅ Pause command configured")
         
         // Configure toggle play/pause (for lock screen tap)
         setupTogglePlayPauseCommand()
+        print("   ✅ Toggle Play/Pause command configured (lock screen)")
         
         // Configure skip commands
         setupSkipCommands()
+        print("   ✅ Skip Forward/Backward commands configured")
         
         // Configure track navigation
         setupTrackNavigation()
+        print("   ✅ Next/Previous track commands configured")
         
         // Configure playback position seeking
         setupPlaybackPositioning()
+        print("   ✅ Playback position seeking configured")
         
         isCommandsSetup = true
-        print("✅ [MediaControls] All remote commands configured")
+        print("\n✅ [MediaControls] All remote commands configured and ready")
+        print("   Now Playing info updates will appear in:")
+        print("   - Control Center")
+        print("   - Lock screen media widget")
+        print("   - Headphone controls")
+        print("========================================\n")
     }
     
     // MARK: - Command Setup Helpers
@@ -91,8 +107,9 @@ class MediaControlsManager {
     private func setupPlayCommand() {
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] _ in
-            print("▶️ [MediaControls] Play command received")
+            print("\n▶️ [MediaControls] ⚡ PLAY COMMAND RECEIVED FROM CONTROL CENTER/LOCK SCREEN ⚡")
             self?.handleCommand { $0.handlePlayCommand() }
+            print("   ✅ Play command forwarded to audio player\n")
             return .success
         }
     }
@@ -100,8 +117,9 @@ class MediaControlsManager {
     private func setupPauseCommand() {
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] _ in
-            print("⏸️ [MediaControls] Pause command received")
+            print("\n⏸️ [MediaControls] ⚡ PAUSE COMMAND RECEIVED FROM CONTROL CENTER/LOCK SCREEN ⚡")
             self?.handleCommand { $0.handlePauseCommand() }
+            print("   ✅ Pause command forwarded to audio player\n")
             return .success
         }
     }
@@ -109,8 +127,9 @@ class MediaControlsManager {
     private func setupTogglePlayPauseCommand() {
         commandCenter.togglePlayPauseCommand.isEnabled = true
         commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
-            print("🔄 [MediaControls] Toggle play/pause received (lock screen)")
+            print("\n🔄 [MediaControls] ⚡ TOGGLE PLAY/PAUSE RECEIVED FROM LOCK SCREEN TAP ⚡")
             self?.handleCommand { $0.handleTogglePlayPauseCommand() }
+            print("   ✅ Toggle command forwarded to audio player\n")
             return .success
         }
     }
@@ -188,6 +207,9 @@ class MediaControlsManager {
     /// Sets the delegate that handles media control commands
     static func setDelegate(_ delegate: MediaControlsDelegate) {
         MediaControlsManager.delegate = delegate
+        print("\n🔗 [MediaControls] Delegate registered: \(type(of: delegate))")
+        print("   Remote commands will now be routed to: \(type(of: delegate))")
+        print("   Control Center/Lock Screen interactions enabled\n")
     }
     
     // MARK: - Media Info Updates
@@ -214,11 +236,22 @@ class MediaControlsManager {
     ) {
         // Validate essential values
         guard duration > 0 else {
-            print("⚠️ [MediaControls] Cannot update Now Playing with invalid duration: \\(duration)")
+            print("❌ [MediaControls] DIAGNOSTIC: Cannot update Now Playing with invalid duration: \(duration)")
+            print("   Title: \(title)")
+            print("   Artist: \(artist)")
             return
         }
         
-        print("🎵 [MediaControls] Updating Now Playing: \\(title) - \\(artist)")
+        print("\n🎵 [MediaControls] ========== UPDATING NOW PLAYING INFO ==========")
+        print("   Title: \(title)")
+        print("   Artist: \(artist)")
+        print("   Album: \(album)")
+        print("   Duration: \(String(format: "%.2f", duration))s")
+        print("   Current Time: \(String(format: "%.2f", currentTime))s")
+        print("   Is Playing: \(isPlaying)")
+        print("   Playback Rate: \(playbackRate)x")
+        print("   Playback Rate (for CC): \(isPlaying ? playbackRate : 0.0)")
+        print("   Has Artwork: \(artwork != nil)")
         
         var nowPlayingInfo: [String: Any] = [
             MPMediaItemPropertyTitle: title,
@@ -230,28 +263,59 @@ class MediaControlsManager {
             MPMediaItemPropertyMediaType: MPMediaType.music.rawValue
         ]
         
+        print("\n   Building Now Playing Dictionary with \(nowPlayingInfo.count) base properties...")
+        
         // Add artwork if provided
         if let artwork = artwork {
             let mediaArtwork = MPMediaItemArtwork(boundsSize: artwork.size) { _ in artwork }
             nowPlayingInfo[MPMediaItemPropertyArtwork] = mediaArtwork
-            print("🖼️ [MediaControls] Artwork added")
+            print("   ✅ Artwork added (\(Int(artwork.size.width))x\(Int(artwork.size.height))px)")
+        } else {
+            print("   ⚠️ No artwork provided")
         }
         
         // Set to Now Playing center
+        print("\n   Setting to MPNowPlayingInfoCenter...")
         nowPlayingCenter.nowPlayingInfo = nowPlayingInfo
         
-        // Verify update
-        if nowPlayingCenter.nowPlayingInfo != nil {
-            print("✅ [MediaControls] Now Playing info updated successfully")
+        // Verify update with detailed diagnostics
+        if let verifiedInfo = nowPlayingCenter.nowPlayingInfo {
+            print("   ✅ Now Playing info set successfully")
+            print("   Verified properties: \(verifiedInfo.count)")
+            print("   - Title: \(verifiedInfo[MPMediaItemPropertyTitle] as? String ?? "[missing]")")
+            print("   - Artist: \(verifiedInfo[MPMediaItemPropertyArtist] as? String ?? "[missing]")")
+            print("   - Album: \(verifiedInfo[MPMediaItemPropertyAlbumTitle] as? String ?? "[missing]")")
+            print("   - Duration: \(verifiedInfo[MPMediaItemPropertyPlaybackDuration] as? Double ?? 0)s")
+            print("   - Elapsed: \(verifiedInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] as? Double ?? 0)s")
+            print("   - Rate: \(verifiedInfo[MPNowPlayingInfoPropertyPlaybackRate] as? Double ?? 0)")
+            print("   - Has Artwork: \(verifiedInfo[MPMediaItemPropertyArtwork] != nil)")
+            print("   - Media Type: \(verifiedInfo[MPMediaItemPropertyMediaType] as? NSNumber ?? 0)")
+            print("✅ [MediaControls] Control Center/Lock Screen should now display")
+            print("========================================\n")
         } else {
-            print("❌ [MediaControls] Failed to update Now Playing info")
+            print("   ❌ DIAGNOSTIC: Failed to set Now Playing info")
+            print("   MPNowPlayingInfoCenter.nowPlayingInfo is nil")
+            print("   Control Center and lock screen will NOT display")
+            print("========================================\n")
         }
     }
     
     /// Clears the Now Playing information
     func clearNowPlayingInfo() {
-        print("🔄 [MediaControls] Clearing Now Playing info")
-        nowPlayingCenter.nowPlayingInfo = nil
+        print("\n🔄 [MediaControls] ========== CLEARING NOW PLAYING INFO ==========")
+        if nowPlayingCenter.nowPlayingInfo != nil {
+            print("   Clearing existing Now Playing info...")
+            nowPlayingCenter.nowPlayingInfo = nil
+            if nowPlayingCenter.nowPlayingInfo == nil {
+                print("   ✅ Successfully cleared")
+                print("   Control Center and lock screen will be HIDDEN")
+            } else {
+                print("   ❌ Failed to clear (unexpected)")
+            }
+        } else {
+            print("   ⚠️ Now Playing info is already nil (nothing to clear)")
+        }
+        print("========================================\n")
     }
     
     // MARK: - State Management
@@ -261,17 +325,34 @@ class MediaControlsManager {
         do {
             let audioSession = AVAudioSession.sharedInstance()
             
+            print("\n🔧 [MediaControls] ========== AUDIO SESSION DIAGNOSTIC ==========")
+            print("   Current category: \(audioSession.category)")
+            print("   Current mode: \(audioSession.mode)")
+            
             // Set category and activate
             try audioSession.setCategory(
                 .playback,
                 mode: .default,
                 options: [.mixWithOthers]
             )
-            try audioSession.setActive(true)
+            print("   ✅ Category set to: .playback")
+            print("   ✅ Options set to: [.mixWithOthers]")
             
-            print("✅ [MediaControls] Audio session configured and active")
+            try audioSession.setActive(true)
+            print("   ✅ Audio session activated")
+            
+            print("   \nVerification:")
+            print("   - Category: \(audioSession.category)")
+            print("   - Mode: \(audioSession.mode)")
+            print("   - Is Other Audio Playing: \(audioSession.isOtherAudioPlaying)")
+            print("✅ [MediaControls] Audio session ready for Control Center/Lock Screen")
+            print("========================================\n")
         } catch {
-            print("❌ [MediaControls] Failed to configure audio session: \\(error)")
+            print("\n❌ [MediaControls] ========== AUDIO SESSION ERROR ==========")
+            print("   Failed to configure audio session")
+            print("   Error: \(error.localizedDescription)")
+            print("   IMPACT: Control Center may not appear")
+            print("========================================\n")
         }
     }
 }
