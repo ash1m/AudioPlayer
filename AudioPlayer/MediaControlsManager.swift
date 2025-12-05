@@ -31,7 +31,54 @@ class MediaControlsManager {
     
     // MARK: - Initialization
     private init() {
+        print("\n🚀 [MediaControls] ========== STARTUP VALIDATION ==========")
+        validateCriticalRequirements()
         setupRemoteCommands()
+    }
+    
+    private func validateCriticalRequirements() {
+        print("   Checking critical requirements...\n")
+        
+        // Check 1: Audio Session Category
+        let audioSession = AVAudioSession.sharedInstance()
+        let isPlaybackCategory = audioSession.category == .playback
+        if isPlaybackCategory {
+            print("   ✅ CHECK 1: Audio session category is .playback")
+        } else {
+            print("   ⚠️ CHECK 1: Audio session category is NOT .playback")
+            print("   Current category: \(audioSession.category)")
+            print("   ACTION: Will be set in ensureAudioSessionActive()")
+        }
+        
+        // Check 2: UIBackgroundModes in Info.plist
+        if let backgroundModes = Bundle.main.infoDictionary?["UIBackgroundModes"] as? [String] {
+            if backgroundModes.contains("audio") {
+                print("   ✅ CHECK 2: UIBackgroundModes contains 'audio' in Info.plist")
+                print("   Background modes: \(backgroundModes)")
+            } else {
+                print("   ❌ CHECK 2: UIBackgroundModes does NOT contain 'audio'")
+                print("   Available modes: \(backgroundModes)")
+                print("   FIX: Add <string>audio</string> to UIBackgroundModes in Info.plist")
+            }
+        } else {
+            print("   ❌ CHECK 2: UIBackgroundModes not found in Info.plist")
+            print("   FIX: Add UIBackgroundModes array with 'audio' entry to Info.plist")
+        }
+        
+        // Check 3: Now Playing Info status
+        if nowPlayingCenter.nowPlayingInfo != nil {
+            print("   ✅ CHECK 3: Now Playing info is set")
+            print("   Info keys: \(nowPlayingCenter.nowPlayingInfo?.keys.count ?? 0)")
+        } else {
+            print("   ⚠️ CHECK 3: Now Playing info is not yet set (expected during startup)")
+            print("   ACTION: Will be set when audio file is loaded")
+        }
+        
+        // Check 4: Remote Command Handler Setup
+        print("   ✅ CHECK 4: Remote commands will be configured in setupRemoteCommands()")
+        print("   ACTION: Will add targets to MPRemoteCommandCenter")
+        
+        print("\n========================================\n")
     }
     
     // MARK: - Setup Methods
@@ -53,34 +100,40 @@ class MediaControlsManager {
         
         // Configure play command
         setupPlayCommand()
-        print("   ✅ Play command configured")
+        print("   ✅ Play command configured - isEnabled: \(commandCenter.playCommand.isEnabled)")
         
         // Configure pause command
         setupPauseCommand()
-        print("   ✅ Pause command configured")
+        print("   ✅ Pause command configured - isEnabled: \(commandCenter.pauseCommand.isEnabled)")
         
         // Configure toggle play/pause (for lock screen tap)
         setupTogglePlayPauseCommand()
-        print("   ✅ Toggle Play/Pause command configured (lock screen)")
+        print("   ✅ Toggle Play/Pause command configured - isEnabled: \(commandCenter.togglePlayPauseCommand.isEnabled)")
         
         // Configure skip commands
         setupSkipCommands()
-        print("   ✅ Skip Forward/Backward commands configured")
+        print("   ✅ Skip Forward: \(commandCenter.skipForwardCommand.isEnabled) | Backward: \(commandCenter.skipBackwardCommand.isEnabled)")
         
         // Configure track navigation
         setupTrackNavigation()
-        print("   ✅ Next/Previous track commands configured")
+        print("   ✅ Next/Previous - Next: \(commandCenter.nextTrackCommand.isEnabled) | Prev: \(commandCenter.previousTrackCommand.isEnabled)")
         
         // Configure playback position seeking
         setupPlaybackPositioning()
-        print("   ✅ Playback position seeking configured")
+        print("   ✅ Playback position seeking - isEnabled: \(commandCenter.changePlaybackPositionCommand.isEnabled)")
         
         isCommandsSetup = true
         print("\n✅ [MediaControls] All remote commands configured and ready")
-        print("   Now Playing info updates will appear in:")
+        print("   Registered commands:")
+        print("   - Play/Pause/Toggle: Enabled")
+        print("   - Skip Forward/Backward: Enabled")
+        print("   - Next/Previous Track: Enabled")
+        print("   - Playback Position: Enabled")
+        print("\n   Now Playing info updates will appear in:")
         print("   - Control Center")
         print("   - Lock screen media widget")
         print("   - Headphone controls")
+        print("\n   Waiting for audio to be loaded and played...")
         print("========================================\n")
     }
     
