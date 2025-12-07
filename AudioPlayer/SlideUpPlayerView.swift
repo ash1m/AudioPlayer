@@ -58,8 +58,6 @@ struct SlideUpPlayerView: View {
                         }
                     )
                     .offset(y: calculatePlayerContentOffset())
-                    .scaleEffect(calculatePlayerContentScale())
-                    .opacity(calculatePlayerContentOpacity())
                     .gesture(dragGesture)
             }
             .onAppear {
@@ -83,7 +81,7 @@ struct SlideUpPlayerView: View {
         }
         .sheet(isPresented: $isShowingSpeedOptions) {
             speedDialogButtons
-                //.presentationDetents([.height(300)]) // Partial height
+            //.presentationDetents([.height(300)]) // Partial height
                 .presentationDragIndicator(.visible)
         }
         .onChange(of: audioPlayerService.currentTime) { oldValue, newValue in
@@ -105,7 +103,7 @@ struct SlideUpPlayerView: View {
             updateCachedLabels()
         }
     }
-
+    
     
     @ViewBuilder
     private var speedDialogButtons: some View {
@@ -178,44 +176,36 @@ struct SlideUpPlayerView: View {
     }
     
     private var expandedPlayer: some View {
-        AccessibleExpandedPlayer {
-            VStack() {
-                // Drag handle at top - now with gesture
-                expandedPlayerDragHandle
+        VStack() {
+            // Drag handle at top - now with gesture
+            expandedPlayerDragHandle
+            
+            // Main content with adaptive spacing
+            VStack(spacing: 24) {
+                // Book artwork with overlay details
+                artworkBackground
+                    .frame(width: 280, height: 280)
                 
-                // Main content with adaptive spacing
-                VStack(spacing: 24) {
-                    // Book artwork with overlay details
-                    artworkBackground
-                        .frame(width: 280, height: 280)
-                    
-                    // Group files indicator (for audiobooks)
-                    if audioPlayerService.isPlayingFromGroup && !audioPlayerService.groupedFilesQueue.isEmpty {
-                        groupFilesIndicator
-                    }
-                    
-                    // Book Details
-                    bookDetailsOverlay
-                    // Playback controls group
-                    playbackControlsGroup
-                    
-                    // Control buttons
-                    controlButtons
-                    
-                    // Bottom options (Sleep/Speed)
-                    bottomOptions
+                // Group files indicator (for audiobooks)
+                if audioPlayerService.isPlayingFromGroup && !audioPlayerService.groupedFilesQueue.isEmpty {
+                    groupFilesIndicator
                 }
+                
+                // Book Details
+                bookDetailsOverlay
+                // Playback controls group
+                playbackControlsGroup
+                
+                // Control buttons
+                controlButtons
+                
+                // Bottom options (Sleep/Speed)
+                bottomOptions
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        onEscape: {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                playerState = .minimized
-                accessibilityManager.announceMessage("Player minimized")
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
-
+    
     
     private var expandedPlayerDragHandle: some View {
         Image(systemName: "chevron.down")
@@ -224,23 +214,7 @@ struct SlideUpPlayerView: View {
             .frame(height: 44)
             .contentShape(Rectangle())
             .accessibilityHidden(true)
-            .highPriorityGesture(
-                DragGesture()
-                    .onChanged { value in
-                        let translation = value.translation.height
-                        dragOffset = translation
-                    }
-                    .onEnded { value in
-                        let translation = value.translation.height
-                        withAnimation(.spring(response: 0.8, dampingFraction: 0.9, blendDuration: 0.5)) {
-                            // Minimize if dragged down
-                            if translation > 50 {
-                                playerState = .minimized
-                            }
-                        }
-                        dragOffset = 0
-                    }
-            )
+
     }
     
     
@@ -488,7 +462,7 @@ struct SlideUpPlayerView: View {
         cachedMiniPlayerValue = miniPlayerAccessibilityValue
         cachedTimelineValue = timelineAccessibilityValue
     }
-
+    
     
     private var progressBarMinimized: some View {
         ZStack(alignment: .leading) {
@@ -513,7 +487,7 @@ struct SlideUpPlayerView: View {
                 audioPlayerService.rewind15()
             }
             
-            // Play/Pause button  
+            // Play/Pause button
             GlassMorphismButton(
                 systemIcon: audioPlayerService.isPlaying ? "pause" : "play.fill",
                 size: 80,
@@ -570,7 +544,7 @@ struct SlideUpPlayerView: View {
                 
                 Text(playingText)
                     .font(FontManager.font(.regular, size: 16))
-                                
+                
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .semibold))
             }
@@ -635,225 +609,152 @@ struct SlideUpPlayerView: View {
     // MARK: - Drag Animation Calculations
     
     private func calculatePlayerContentOffset() -> CGFloat {
-        // Only apply offset when dragging down and expanded
         guard playerState == .expanded else { return 0 }
         
-        // Limit offset so player doesn't go off-screen
-        // Allow it to move down but keep some visible
-        let maxOffset = 300.0 // Maximum pixels to offset
+        let maxOffset = 300.0
         let offset = min(dragOffset, maxOffset)
-        return offset > 0 ? offset : 0
-    }
-    
-    private func calculatePlayerContentScale() -> CGFloat {
-        // Only apply scale when dragging down (dragOffset > 0) and expanded
-        guard playerState == .expanded else { return 1.0 }
         
-        // Scale from 1.0 down to 0.85 as drag increases
-        let dragThreshold: CGFloat = 0
-        let maxDragForScale: CGFloat = 150
-        
-        if dragOffset <= dragThreshold {
-            return 1.0
-        }
-        
-        let scaleFactor = 1.0 - ((dragOffset / maxDragForScale) * 0.15)
-        return max(0.85, min(1.0, scaleFactor))
-    }
-    
-    private func calculatePlayerContentOpacity() -> Double {
-        // Only apply opacity change when dragging down and expanded
-        guard playerState == .expanded else { return 1.0 }
-        
-        // Fade opacity as drag increases
-        let dragThreshold: CGFloat = 0
-        let maxDragForOpacity: CGFloat = 200
-        
-        if dragOffset <= dragThreshold {
-            return 1.0
-        }
-        
-        let opacityFactor = 1.0 - ((dragOffset / maxDragForOpacity) * 0.3)
-        return max(0.7, min(1.0, opacityFactor))
+        return (offset > 300) ? 0 : (offset > 0 ? offset : 0)
     }
     
     // MARK: - Gestures
     
+    
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                let translation = value.translation.height // CGSize uses height, not y
+                let translation = value.translation.height
                 
                 if playerState == .minimized {
-                    // Allow upward drag (negative) for expansion and downward drag (positive) for dismissal
-                    dragOffset = translation
+                    // Allow dragging in both directions when minimized
+                    dragOffset = min(0, translation)
+                    //print(dragOffset)
                 } else {
                     // Only allow downward drag when expanded
                     dragOffset = max(0, translation)
                 }
             }
             .onEnded { value in
-                let translation = value.translation.height // CGSize uses height, not y
-                
-                // Simplified gesture handling without velocity
-                // Use only translation distance for determining state change
-                withAnimation(.spring(response: 0.8, dampingFraction: 0.9, blendDuration: 0.5)) {
-                    if playerState == .minimized {
-                        // Dismiss if dragged down significantly from minimized state
-                        if translation > 80 {
-                            audioPlayerService.clearCurrentFile()
-                            dragOffset = 0
-                        }
-                        // Expand if dragged up significantly
-                        else if translation < -50 {
-                            playerState = .expanded
-                        } else {
-                            // Reset drag offset for spring animation back up
-                            dragOffset = 0
-                        }
-                    } else {
-                        // Minimize if dragged down significantly from expanded state
-                        if translation > 100 {
+                let translation = value.translation.height
+                let dismissalThreshold: CGFloat = 300
+                                
+                withAnimation(.easeOut(duration: 0.4)) {
+                    
+                    if playerState == .expanded {
+                        if translation > dismissalThreshold {
+                            // Minimize player
+                            
                             playerState = .minimized
                             dragOffset = 0
-                        }
-                        // Dismiss if dragged down very far from expanded state
-                        else if translation > 200 {
-                            audioPlayerService.clearCurrentFile()
-                            dragOffset = 0
                         } else {
-                            // Continue animating downward with momentum before resetting
-                            // Add extra offset to simulate momentum continuation
-                            dragOffset = translation + 100
-                            // Then reset after a short delay
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                withAnimation(.easeIn(duration: 0.4)) {
-                                    dragOffset = 1000 // Animate off-screen
-                                }
-                            }
+                            // Snap back to expanded
+                            playerState = .expanded
+                            
+                            dragOffset = 0
                         }
                     }
                 }
             }
     }
-}
-
-// MARK: - Glass Morphism Button
-
-struct GlassMorphismButton: View {
-    @Environment(\.appTheme) var appTheme
-    let systemIcon: String
-    let size: CGFloat
-    let action: () -> Void
-    let accessibilityLabel: String?
-    let accessibilityHint: String?
     
-    init(systemIcon: String, size: CGFloat = 80, accessibilityLabel: String? = nil, accessibilityHint: String? = nil, action: @escaping () -> Void) {
-        self.systemIcon = systemIcon
-        self.size = size
-        self.accessibilityLabel = accessibilityLabel
-        self.accessibilityHint = accessibilityHint
-        self.action = action
-    }
+    // MARK: - Glass Morphism Button
     
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                glassMorphismBackground
-                iconView
+    struct GlassMorphismButton: View {
+        @Environment(\.appTheme) var appTheme
+        let systemIcon: String
+        let size: CGFloat
+        let action: () -> Void
+        let accessibilityLabel: String?
+        let accessibilityHint: String?
+        
+        init(systemIcon: String, size: CGFloat = 80, accessibilityLabel: String? = nil, accessibilityHint: String? = nil, action: @escaping () -> Void) {
+            self.systemIcon = systemIcon
+            self.size = size
+            self.accessibilityLabel = accessibilityLabel
+            self.accessibilityHint = accessibilityHint
+            self.action = action
+        }
+        
+        var body: some View {
+            Button(action: action) {
+                ZStack {
+                    glassMorphismBackground
+                    iconView
+                }
+            }
+            .frame(width: size, height: size)
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel(accessibilityLabel ?? defaultAccessibilityLabel)
+            .accessibilityHint(accessibilityHint ?? "")
+            .accessibilityAddTraits(.isButton)
+        }
+        
+        private var glassMorphismBackground: some View {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Circle()
+                        .stroke(appTheme.textColor.opacity(0.3), lineWidth: 1.5)
+                )
+                //.shadow(color: appTheme.shadowColor.opacity(0.15), radius: 12, x: 0, y: 6)
+        }
+        
+        private var iconView: some View {
+            Image(systemName: systemIcon)
+                .font(FontManager.fontWithSystemFallback(weight: .semibold, size: iconSize))
+                .foregroundColor(appTheme.textColor.opacity(0.9))
+                .shadow(color: appTheme.shadowColor.opacity(0.3), radius: 1, x: 0, y: 1)
+        }
+        
+        private var iconSize: CGFloat {
+            size * 0.24 // Scale icon relative to button size
+        }
+        
+        private var defaultAccessibilityLabel: String {
+            switch systemIcon {
+            case "play.fill": return "Play"
+            case "pause": return "Pause"
+            case "gobackward.15": return "Rewind 15 seconds"
+            case "goforward.15": return "Fast forward 15 seconds"
+            default: return "Button"
             }
         }
-        .frame(width: size, height: size)
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityLabel(accessibilityLabel ?? defaultAccessibilityLabel)
-        .accessibilityHint(accessibilityHint ?? "")
-        .accessibilityAddTraits(.isButton)
     }
     
-    private var glassMorphismBackground: some View {
-        Circle()
-            .fill(.ultraThinMaterial)
-            .overlay(
-                Circle()
-                    .stroke(appTheme.textColor.opacity(0.3), lineWidth: 1.5)
-            )
-            .shadow(color: appTheme.shadowColor.opacity(0.15), radius: 12, x: 0, y: 6)
-    }
     
-    private var iconView: some View {
-        Image(systemName: systemIcon)
-            .font(FontManager.fontWithSystemFallback(weight: .semibold, size: iconSize))
-            .foregroundColor(appTheme.textColor.opacity(0.9))
-            .shadow(color: appTheme.shadowColor.opacity(0.3), radius: 1, x: 0, y: 1)
-    }
+    // MARK: - Simplified Glass Button
     
-    private var iconSize: CGFloat {
-        size * 0.24 // Scale icon relative to button size
-    }
-    
-    private var defaultAccessibilityLabel: String {
-        switch systemIcon {
-        case "play.fill": return "Play"
-        case "pause": return "Pause"
-        case "gobackward.15": return "Rewind 15 seconds"
-        case "goforward.15": return "Fast forward 15 seconds"
-        default: return "Button"
-        }
-    }
-}
-
-// MARK: - Accessible Expanded Player Wrapper
-
-struct AccessibleExpandedPlayer<Content: View>: View {
-    let content: Content
-    let onEscape: () -> Void
-    
-    init(@ViewBuilder content: () -> Content, onEscape: @escaping () -> Void) {
-        self.content = content()
-        self.onEscape = onEscape
-    }
-    
-    var body: some View {
-        content
-            .accessibilityElement(children: .contain)
-            .accessibilityAction(named: "Minimize player") {
-                onEscape()
+    struct GlassButton: View {
+        @Environment(\.appTheme) var appTheme
+        let text: String
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 4) {
+                    Text(text)
+                        .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
+                        .foregroundColor(appTheme.textColor)
+                    Image(systemName: "chevron.down")
+                        .font(FontManager.fontWithSystemFallback(weight: .medium, size: 12))
+                        .foregroundColor(appTheme.textColor.opacity(0.8))
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(glassBackground)
             }
-    }
-}
-
-// MARK: - Simplified Glass Button
-
-struct GlassButton: View {
-    @Environment(\.appTheme) var appTheme
-    let text: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Text(text)
-                    .font(FontManager.fontWithSystemFallback(weight: .semibold, size: 18))
-                    .foregroundColor(appTheme.textColor)
-                Image(systemName: "chevron.down")
-                    .font(FontManager.fontWithSystemFallback(weight: .medium, size: 12))
-                    .foregroundColor(appTheme.textColor.opacity(0.8))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(glassBackground)
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private var glassBackground: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(appTheme.textColor.opacity(0.2), lineWidth: 1)
-            )
-            .shadow(color: appTheme.shadowColor.opacity(0.1), radius: 8, x: 0, y: 4)
+        
+        private var glassBackground: some View {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(appTheme.textColor.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: appTheme.shadowColor.opacity(0.1), radius: 8, x: 0, y: 4)
+        }
     }
 }
 
