@@ -214,7 +214,7 @@ struct SlideUpPlayerView: View {
             .frame(height: 44)
             .contentShape(Rectangle())
             .accessibilityHidden(true)
-
+        
     }
     
     
@@ -608,13 +608,13 @@ struct SlideUpPlayerView: View {
     
     // MARK: - Drag Animation Calculations
     
-    private func calculatePlayerContentOffset() -> CGFloat {
+   private func calculatePlayerContentOffset() -> CGFloat {
         guard playerState == .expanded else { return 0 }
         
-        let maxOffset = 300.0
-        let offset = min(dragOffset, maxOffset)
+        //let maxOffset = 300.0
+        //let offset = min(dragOffset, maxOffset)
         
-        return (offset > 300) ? 0 : (offset > 0 ? offset : 0)
+        return dragOffset
     }
     
     // MARK: - Gestures
@@ -634,22 +634,45 @@ struct SlideUpPlayerView: View {
                     dragOffset = max(0, translation)
                 }
             }
+        
             .onEnded { value in
                 let translation = value.translation.height
                 let dismissalThreshold: CGFloat = 300
-                                
-                withAnimation(.easeOut(duration: 0.4)) {
-                    
-                    if playerState == .expanded {
-                        if translation > dismissalThreshold {
-                            // Minimize player
-                            
-                            playerState = .minimized
-                            dragOffset = 0
-                        } else {
-                            // Snap back to expanded
+                
+                if playerState == .expanded
+                {
+                    if translation > dismissalThreshold
+                    {
+                        // Minimize player - use custom animation
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8))
+                        {
+                            // Slide expanded player down off-screen
+                            dragOffset = 800 // Push it way down
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3)
+                        {
+                            withAnimation(.spring(response: 3.5, dampingFraction: 0.8))
+                            {
+                                playerState = .minimized
+                            }
+
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3)
+                        {
+                            withAnimation(.spring(response: 3.5, dampingFraction: 0.8))
+                            {
+                                dragOffset = 0
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        // Snap back to expanded
+                        withAnimation(.easeOut(duration: 0.4))
+                        {
                             playerState = .expanded
-                            
                             dragOffset = 0
                         }
                     }
@@ -696,7 +719,7 @@ struct SlideUpPlayerView: View {
                     Circle()
                         .stroke(appTheme.textColor.opacity(0.3), lineWidth: 1.5)
                 )
-                //.shadow(color: appTheme.shadowColor.opacity(0.15), radius: 12, x: 0, y: 6)
+            //.shadow(color: appTheme.shadowColor.opacity(0.15), radius: 12, x: 0, y: 6)
         }
         
         private var iconView: some View {
@@ -757,10 +780,10 @@ struct SlideUpPlayerView: View {
         }
     }
 }
+    #Preview {
+        SlideUpPlayerView()
+            .environmentObject(AudioPlayerService())
+            .environmentObject(AccessibilityManager())
+            .background(AppTheme(isDark: true).backgroundColor)
+    }
 
-#Preview {
-    SlideUpPlayerView()
-        .environmentObject(AudioPlayerService())
-        .environmentObject(AccessibilityManager())
-        .background(AppTheme(isDark: true).backgroundColor)
-}

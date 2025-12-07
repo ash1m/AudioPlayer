@@ -219,7 +219,7 @@ class AudioPlayerService: NSObject, ObservableObject {
             let sessionOptions: AVAudioSession.CategoryOptions = [
                 .allowBluetoothA2DP,
                 .allowAirPlay,
-                .defaultToSpeaker,
+                //.defaultToSpeaker,
                 .mixWithOthers
             ]
             
